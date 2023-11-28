@@ -1,2 +1,6 @@
-# CS1230-final-project
-Perlin noise mapping using three.js
+# Web based terrain generation
+
+## Description
+
+This is a web based terrain generation project using three.js created for 
+group Microsoft Flight Simulator.
