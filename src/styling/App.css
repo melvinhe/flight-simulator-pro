@@ -1,0 +1,12 @@
+.App {
+    height: 100vh;
+    overflow: hidden;
+    position: relative;
+    width: 100vw;
+}
+
+a:-webkit-any-link {
+    text-decoration: none;
+    color: white;
+    cursor: pointer;
+}
