@@ -32,24 +32,7 @@ function Home() {
     const geometry = new THREE.BoxGeometry(1, 1, 1);
     const cube = new THREE.Mesh(geometry, material);
 
-    // Load the 3D model using GLTFLoader
-    const loader = new THREE.GLTFLoader();
-
-    loader.load(
-        'models/cute_airplane.glb', // Replace with the path to your 3D model
-        (gltf) => {
-            const humanoid = gltf.scene;
-            humanoid.position.set(2, 0, 0); // Position the humanoid model next to the cube
-
-            scene.add(humanoid);
-        },
-        undefined,
-        (error) => {
-            console.error('Error loading 3D model', error);
-        }
-    );
-
-    const planeGeometry = new THREE.PlaneGeometry(50, 50, 32, 32);
+    const planeGeometry = new THREE.PlaneGeometry(100, 100, 32, 32);
     const grassTexture = generateGrassTexture(); // Generate grass-like texture
     const planeMaterial = new THREE.MeshStandardMaterial({ map: grassTexture, side: THREE.DoubleSide });
     const plane = new THREE.Mesh(planeGeometry, planeMaterial);
@@ -58,7 +41,6 @@ function Home() {
     cube.castShadow = true;
     scene.add(cube);
     scene.add(plane);
-
 
     const light = new THREE.PointLight(0xffffff, 10, 10);
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
@@ -151,7 +133,7 @@ function Home() {
     };
   }, []);
 
-  // Function to generate grass-like texture
+  // Function to generate perlin-noise grass texture
   const generateGrassTexture = () => {
     const canvas = document.createElement("canvas");
     canvas.width = canvas.height = 512;
