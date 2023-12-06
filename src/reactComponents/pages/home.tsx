@@ -5,13 +5,16 @@ import {OrbitControls} from "three/examples/jsm/controls/OrbitControls";
 
 function Home() {
     const threeContainer = useRef(null);
+    const isMouseDown = useRef(false);
 
     useEffect(() => {
         let keys = {
             up: false,
             down: false,
             left: false,
-            right: false
+            right: false,
+            space: false,
+            control: false
         };
 
         // Three.js scene setup
@@ -53,11 +56,25 @@ function Home() {
             cube.rotation.x += 0.01;
             cube.rotation.y += 0.01;
 
-            if (keys.up) camera.position.z -= speed;
-            if (keys.down) camera.position.z += speed;
-            if (keys.left) camera.position.x -= speed;
-            if (keys.right) camera.position.x += speed;
-
+            if (keys.up) {
+                camera.translateZ(-speed);
+            }
+            if (keys.down) {
+                camera.translateZ(speed);
+            }
+            if (keys.right) {
+                camera.translateX(speed);
+            }
+            if (keys.left) {
+                camera.translateX(-speed);
+            }
+            if (keys.space) {
+                camera.translateY(speed);
+            }
+            if (keys.control) {
+                camera.translateY(-speed);
+            }
+            // controls.update()
             renderer.render(scene, camera);
         };
 
@@ -68,9 +85,9 @@ function Home() {
             renderer.setSize(width, height);
             camera.aspect = width / height;
             camera.updateProjectionMatrix();
+            // controls.update();
         }
 
-        const controls = new OrbitControls(camera, renderer.domElement);
         function handleKeyDown(event: { keyCode: any; }) {
             const keyCode = event.keyCode;
             switch (keyCode) {
@@ -78,6 +95,8 @@ function Home() {
                 case 83: keys.down = true; break;
                 case 65: keys.left = true; break;
                 case 68: keys.right = true; break;
+                case 32: keys.space = true; break;
+                case 17: keys.control = true; break;
                 default: break;
             }
         }
@@ -89,8 +108,62 @@ function Home() {
                 case 83: keys.down = false; break;
                 case 65: keys.left = false; break;
                 case 68: keys.right = false; break;
+                case 32: keys.space = false; break;
+                case 17: keys.control = false; break;
                 default: break;
             }
+        }
+
+        // @ts-ignore
+        function updateCameraRotation(event) {
+            if (!isMouseDown.current) return; // Only rotate when mouse is down
+
+            const movementX = event.movementX || event.mozMovementX || event.webkitMovementX || 0;
+            const movementY = event.movementY || event.mozMovementY || event.webkitMovementY || 0;
+
+            // Adjust these values based on your sensitivity preferences
+            camera.rotation.y -= movementX * 0.002;
+            camera.rotation.x -= movementY * 0.002;
+        }
+
+        // Mouse down event
+        function onMouseDown() {
+            isMouseDown.current = true;
+        }
+
+        // Mouse up event
+        function onMouseUp() {
+            isMouseDown.current = false;
+        }
+
+        // Enable pointer lock when clicking on the canvas
+        renderer.domElement.addEventListener('click', () => {
+            renderer.domElement.requestPointerLock();
+        });
+
+        // Listen for mouse movement events when pointer lock is active
+        document.addEventListener('mousemove', updateCameraRotation, false);
+
+        // Listen for mouse down and up events
+        document.addEventListener('mousedown', onMouseDown, false);
+        document.addEventListener('mouseup', onMouseUp, false);
+
+        // Handle pointer lock change and error events
+        document.addEventListener('pointerlockchange', handlePointerLockChange, false);
+        document.addEventListener('pointerlockerror', handlePointerLockError, false);
+
+        function handlePointerLockChange() {
+            // Logic when pointer lock changes
+            if (document.pointerLockElement === renderer.domElement) {
+                // Pointer Lock is active
+            } else {
+                // Pointer Lock is released
+                isMouseDown.current = false;
+            }
+        }
+
+        function handlePointerLockError() {
+            console.error('Error with Pointer Lock');
         }
 
         animate();
