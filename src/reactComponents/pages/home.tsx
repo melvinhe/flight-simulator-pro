@@ -9,14 +9,23 @@ function Home() {
         // Three.js scene setup
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-        const renderer = new THREE.WebGLRenderer();
+        const renderer = new THREE.WebGLRenderer({ antialias: true});
         renderer.setSize(window.innerWidth, window.innerHeight);
+        // @ts-ignore
         threeContainer.current.appendChild(renderer.domElement);
 
-        const geometry = new THREE.BoxGeometry();
-        const material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
+        // const geometry = new THREE.BoxGeometry();
+        const faceColors = [ 'red', 'green', 'blue', 'yellow', 'magenta', 'cyan' ];
+        const material = faceColors.map(color => { return new THREE.MeshLambertMaterial({ color: color })});
+        const geometry = new THREE.BoxGeometry(1, 1, 1);
         const cube = new THREE.Mesh(geometry, material);
+        cube.castShadow = true;
         scene.add(cube);
+
+        const light = new THREE.PointLight(0xffffff, 1, 100);
+        light.position.set(0, 0, 2);
+        light.castShadow = true;
+        scene.add(light);
 
         camera.position.z = 5;
 
