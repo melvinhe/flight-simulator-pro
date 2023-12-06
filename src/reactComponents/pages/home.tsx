@@ -28,8 +28,10 @@ function Home() {
         const geometry = new THREE.BoxGeometry(1, 1, 1);
         const cube = new THREE.Mesh(geometry, material);
 
-        const planeGeometry = new THREE.PlaneGeometry(5, 5, 32 ,32);
-        const planeMaterial = new THREE.MeshStandardMaterial({color: 0xffffff, side: THREE.DoubleSide});
+        
+
+        const planeGeometry = new THREE.PlaneGeometry(5, 5, 32, 32);
+        const planeMaterial = new THREE.MeshStandardMaterial({ color: 0x00ff00, side: THREE.DoubleSide }); // Change color to green (0x00ff00)
         const plane = new THREE.Mesh(planeGeometry, planeMaterial);
         plane.rotation.x = Math.PI / 2;
         plane.position.y = -1.5;
