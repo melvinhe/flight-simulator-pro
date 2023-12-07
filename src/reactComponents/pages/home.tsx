@@ -16,6 +16,8 @@ function Home() {
 
     // Three.js scene setup
     const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x87ceeb); // Set background color to sky blue
+
     const camera = new THREE.PerspectiveCamera(
       75,
       window.innerWidth / window.innerHeight,
@@ -27,12 +29,18 @@ function Home() {
     // @ts-ignore
     threeContainer.current.appendChild(renderer.domElement);
 
+    const sunGeometry = new THREE.SphereGeometry(0.5, 32, 32);
+    const sunMaterial = new THREE.MeshBasicMaterial({ color: 0xffff00 }); // Yellow color for the sun
+    const sun = new THREE.Mesh(sunGeometry, sunMaterial);
+    sun.position.set(3, 3, -10); // Position the sun
+    scene.add(sun);
+
     const faceColors = ['red', 'green', 'blue', 'yellow', 'magenta', 'cyan'];
     const material = faceColors.map((color) => new THREE.MeshLambertMaterial({ color: color }));
     const geometry = new THREE.BoxGeometry(1, 1, 1);
     const cube = new THREE.Mesh(geometry, material);
 
-    const planeGeometry = new THREE.PlaneGeometry(100, 100, 32, 32);
+    const planeGeometry = new THREE.PlaneGeometry(300, 300, 32, 32);
     const grassTexture = generateGrassTexture(); // Generate grass-like texture
     const planeMaterial = new THREE.MeshStandardMaterial({ map: grassTexture, side: THREE.DoubleSide });
     const plane = new THREE.Mesh(planeGeometry, planeMaterial);
