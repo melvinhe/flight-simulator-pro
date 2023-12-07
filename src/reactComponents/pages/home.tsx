@@ -56,7 +56,7 @@ function Home() {
           }
       });
 
-      model.scale.set(0.05, 0.05, 0.05);
+      model.scale.set(1,1,1);
 
       scene.add(model);
     });
