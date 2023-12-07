@@ -15,6 +15,8 @@ function Home() {
     };
 
     const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x87ceeb); // Set background color to sky blue
+
     const camera = new THREE.PerspectiveCamera(
       75,
       window.innerWidth / window.innerHeight,
@@ -57,7 +59,7 @@ function Home() {
     };
 
     const generatePlane = (position) => {
-      const planeGeometry = new THREE.PlaneGeometry(30, 30, 32, 32);
+      const planeGeometry = new THREE.PlaneGeometry(300, 300, 32, 32);
       const grassTexture = generateGrassTexture();
       const planeMaterial = new THREE.MeshStandardMaterial({ map: grassTexture, side: THREE.DoubleSide });
       const plane = new THREE.Mesh(planeGeometry, planeMaterial);
