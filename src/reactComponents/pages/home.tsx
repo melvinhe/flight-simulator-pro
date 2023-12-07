@@ -86,8 +86,33 @@ function Home() {
 
     ////////////////////////////////////////////////////////////////////
 
+     // // const geometry = new THREE.BoxGeometry();
+    // const faceColors = [ 'red', 'green', 'blue', 'yellow', 'magenta', 'cyan' ];
+    // const material = faceColors.map(color => { return new THREE.MeshLambertMaterial({ color: color })});
+    // const geometry = new THREE.BoxGeometry(1, 1, 1);
+    // const cube = new THREE.Mesh(geometry, material);
+
+    // const planeGeometry = new THREE.PlaneGeometry(5, 5, 32 ,32);
+    // const planeMaterial = new THREE.MeshStandardMaterial({color: 0xffffff, side: THREE.DoubleSide});
+    // const plane = new THREE.Mesh(planeGeometry, planeMaterial);
+    // plane.rotation.x = Math.PI / 2;
+    // plane.position.y = -1.5;
+    // cube.castShadow = true;
+    // scene.add(cube);
+    // scene.add(plane);
+
+    // const light = new THREE.PointLight(0xffffff, 10, 10);
+    // const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+    // light.position.set(0, 0, 2);
+    // light.castShadow = true;
+    // scene.add(light);
+    // scene.add(ambientLight);
+
+
+
     camera.position.z = 5;
     camera.position.y = 1;
+
 
     const speed = 0.1; // Set motion speed
     // Animation loop
