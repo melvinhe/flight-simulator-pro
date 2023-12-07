@@ -3,14 +3,19 @@ import * as THREE from "three";
 import "../../styling/App.css";
 import {OrbitControls} from "three/examples/jsm/controls/OrbitControls";
 import { FirstPersonControls } from "three/examples/jsm/controls/FirstPersonControls";
+import {Sky} from "three/examples/jsm/objects/Sky";
 
 function Home() {
     const threeContainer = useRef(null);
 
     useEffect(() => {
+        let sky = new Sky();
+        let sun = new THREE.Vector3();
+
         let keys = {
             view: false,
         };
+        sky.scale.setScalar(500000);
 
         // Three.js scene setup
         const scene = new THREE.Scene();
@@ -20,14 +25,40 @@ function Home() {
         // @ts-ignore
         threeContainer.current.appendChild(renderer.domElement);
 
+        const effectController = {
+            turbidity: 10,
+            rayleigh: 3,
+            mieCoefficient: 0.005,
+            mieDirectionalG: 0.7,
+            inclination: 0.49, // default, elevation / inclination
+            azimuth: 0.25, // Facing front,
+            exposure: renderer.toneMappingExposure
+        };
+
+        function updateSun() {
+            const theta = Math.PI * ( effectController.inclination - 0.5 );
+            const phi = 2 * Math.PI * ( effectController.azimuth - 0.5 );
+            sun.x = Math.cos( phi );
+            sun.y = Math.sin( phi ) * Math.sin( theta );
+            sun.z = Math.sin( phi ) * Math.cos( theta );
+
+            sky.material.uniforms['sunPosition'].value.copy( sun );
+            renderer.render( scene, camera );
+        }
+
+        updateSun();
+
         // const geometry = new THREE.BoxGeometry();
         const faceColors = [ 'red', 'green', 'blue', 'yellow', 'magenta', 'cyan' ];
         const material = faceColors.map(color => { return new THREE.MeshLambertMaterial({ color: color })});
         const geometry = new THREE.BoxGeometry(1, 1, 1);
         const cube = new THREE.Mesh(geometry, material);
-
+        const hemiLight = new THREE.HemisphereLight(0xffffff, 0x8d8d8d, 3);
+        hemiLight.position.set(0, 20, 0);
+        // scene.add(hemiLight);
         cube.castShadow = true;
         scene.add(cube);
+        scene.add(sky);
 
         const terrainGeometry = new THREE.PlaneGeometry(2000, 2000, 256 ,256);
         var material2 = new THREE.MeshLambertMaterial({color: 0xffffff});
@@ -64,7 +95,23 @@ function Home() {
                 }
             }
             camera.updateProjectionMatrix();
-            renderer.render(scene, camera);
+            sky.material.uniforms['turbidity'].value = effectController.turbidity;
+            sky.material.uniforms['rayleigh'].value = effectController.rayleigh;
+            sky.material.uniforms['mieCoefficient'].value = effectController.mieCoefficient;
+            sky.material.uniforms['mieDirectionalG'].value = effectController.mieDirectionalG;
+
+            const uniforms = sky.material.uniforms;
+            uniforms['turbidity'].value = effectController.turbidity;
+            uniforms['rayleigh'].value = effectController.rayleigh;
+            uniforms['mieCoefficient'].value = effectController.mieCoefficient;
+            uniforms['mieDirectionalG'].value = effectController.mieDirectionalG;
+            const distance = 400000;
+            uniforms['up'].value.copy( camera.up ).normalize();
+            uniforms['sunPosition'].value.copy( sun );
+            effectController.azimuth += 2 * clock.getDelta();
+            if ( effectController.azimuth > 1 ) effectController.azimuth = 0;
+            updateSun();
+            renderer.render( scene, camera );
         };
 
         function handleResize() {
