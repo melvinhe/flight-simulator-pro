@@ -2,19 +2,14 @@ import React, { useEffect, useRef } from "react";
 import * as THREE from "three";
 import "../../styling/App.css";
 import {OrbitControls} from "three/examples/jsm/controls/OrbitControls";
+import { FirstPersonControls } from "three/examples/jsm/controls/FirstPersonControls";
 
 function Home() {
     const threeContainer = useRef(null);
-    const isMouseDown = useRef(false);
 
     useEffect(() => {
         let keys = {
-            up: false,
-            down: false,
-            left: false,
-            right: false,
-            space: false,
-            control: false
+            view: false,
         };
 
         // Three.js scene setup
@@ -31,14 +26,15 @@ function Home() {
         const geometry = new THREE.BoxGeometry(1, 1, 1);
         const cube = new THREE.Mesh(geometry, material);
 
-        const planeGeometry = new THREE.PlaneGeometry(5, 5, 32 ,32);
-        const planeMaterial = new THREE.MeshStandardMaterial({color: 0xffffff, side: THREE.DoubleSide});
-        const plane = new THREE.Mesh(planeGeometry, planeMaterial);
-        plane.rotation.x = Math.PI / 2;
-        plane.position.y = -1.5;
         cube.castShadow = true;
         scene.add(cube);
-        scene.add(plane);
+
+        const terrainGeometry = new THREE.PlaneGeometry(2000, 2000, 256 ,256);
+        var material2 = new THREE.MeshLambertMaterial({color: 0xffffff});
+        var terrain = new THREE.Mesh( terrainGeometry, material2 );
+        terrain.rotation.x = -Math.PI / 2;
+        terrain.position.y = -1.5;
+        scene.add(terrain);
 
         const light = new THREE.PointLight(0xffffff, 10, 10);
         const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
@@ -48,33 +44,26 @@ function Home() {
         scene.add(ambientLight);
 
         camera.position.z = 5;
+        let lookAtCube = false;
 
-        const speed = 0.1; // Set motion speed
         // Animation loop
         const animate = () => {
             requestAnimationFrame(animate);
             cube.rotation.x += 0.01;
             cube.rotation.y += 0.01;
+            controls.activeLook = controls.mouseDragOn;
+            controls.update(clock.getDelta());
 
-            if (keys.up) {
-                camera.translateZ(-speed);
+            if (lookAtCube) {
+                // Interpolate camera rotation towards cube
+                camera.position.lerp(cube.position, 0.005);
+                camera.lookAt(cube.position);
+                const distance = camera.position.distanceTo(cube.position)
+                if (distance < 10.02) {
+                    lookAtCube = false; // stop the transition
+                }
             }
-            if (keys.down) {
-                camera.translateZ(speed);
-            }
-            if (keys.right) {
-                camera.translateX(speed);
-            }
-            if (keys.left) {
-                camera.translateX(-speed);
-            }
-            if (keys.space) {
-                camera.translateY(speed);
-            }
-            if (keys.control) {
-                camera.translateY(-speed);
-            }
-            // controls.update()
+            camera.updateProjectionMatrix();
             renderer.render(scene, camera);
         };
 
@@ -85,85 +74,39 @@ function Home() {
             renderer.setSize(width, height);
             camera.aspect = width / height;
             camera.updateProjectionMatrix();
-            // controls.update();
+            controls.handleResize();
         }
 
+        const controls = new FirstPersonControls(camera, renderer.domElement);
+        const orbitControls = new OrbitControls(camera, renderer.domElement);
+        controls.movementSpeed = 20;
+        controls.lookSpeed = 0.07;
+        const clock = new THREE.Clock();
+
+        let pressedOnce = false;
         function handleKeyDown(event: { keyCode: any; }) {
-            const keyCode = event.keyCode;
-            switch (keyCode) {
-                case 87: keys.up = true; break;
-                case 83: keys.down = true; break;
-                case 65: keys.left = true; break;
-                case 68: keys.right = true; break;
-                case 32: keys.space = true; break;
-                case 17: keys.control = true; break;
-                default: break;
+            switch (event.keyCode) {
+                case 86:
+                    if (!pressedOnce) {
+                        pressedOnce = true;
+                        orbitControls.enabled = false;
+                        controls.enabled = true;
+                        lookAtCube = false;
+                    } else {
+                        pressedOnce = false;
+                        orbitControls.enabled = true;
+                        controls.enabled = false;
+                        lookAtCube = true;
+                    }
+                    break;
             }
         }
 
         function handleKeyUp(event: { keyCode: any; }) {
-            const keyCode = event.keyCode;
-            switch (keyCode) {
-                case 87: keys.up = false; break;
-                case 83: keys.down = false; break;
-                case 65: keys.left = false; break;
-                case 68: keys.right = false; break;
-                case 32: keys.space = false; break;
-                case 17: keys.control = false; break;
-                default: break;
+            switch (event.keyCode) {
+                case 86:
+                    break;
             }
-        }
-
-        // @ts-ignore
-        function updateCameraRotation(event) {
-            if (!isMouseDown.current) return; // Only rotate when mouse is down
-
-            const movementX = event.movementX || event.mozMovementX || event.webkitMovementX || 0;
-            const movementY = event.movementY || event.mozMovementY || event.webkitMovementY || 0;
-
-            // Adjust these values based on your sensitivity preferences
-            camera.rotation.y -= movementX * 0.002;
-            camera.rotation.x -= movementY * 0.002;
-        }
-
-        // Mouse down event
-        function onMouseDown() {
-            isMouseDown.current = true;
-        }
-
-        // Mouse up event
-        function onMouseUp() {
-            isMouseDown.current = false;
-        }
-
-        // Enable pointer lock when clicking on the canvas
-        renderer.domElement.addEventListener('click', () => {
-            renderer.domElement.requestPointerLock();
-        });
-
-        // Listen for mouse movement events when pointer lock is active
-        document.addEventListener('mousemove', updateCameraRotation, false);
-
-        // Listen for mouse down and up events
-        document.addEventListener('mousedown', onMouseDown, false);
-        document.addEventListener('mouseup', onMouseUp, false);
-
-        // Handle pointer lock change and error events
-        document.addEventListener('pointerlockchange', handlePointerLockChange, false);
-        document.addEventListener('pointerlockerror', handlePointerLockError, false);
-
-        function handlePointerLockChange() {
-            // Logic when pointer lock changes
-            if (document.pointerLockElement === renderer.domElement) {
-                // Pointer Lock is active
-            } else {
-                // Pointer Lock is released
-                isMouseDown.current = false;
-            }
-        }
-
-        function handlePointerLockError() {
-            console.error('Error with Pointer Lock');
         }
 
         animate();
@@ -176,10 +119,10 @@ function Home() {
         return () => {
             renderer.dispose();
             scene.remove(cube);
-            scene.remove(plane);
+            scene.remove(terrain);
             window.removeEventListener('resize', handleResize);
             window.removeEventListener('keydown', handleKeyDown);
-            window.addEventListener('keyup', handleKeyUp);
+            window.removeEventListener('keyup', handleKeyUp);
         };
     }, []);
 
