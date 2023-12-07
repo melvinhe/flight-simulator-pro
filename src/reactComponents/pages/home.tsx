@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from "react";
 import * as THREE from "three";
+import * as dat from "dat.gui";
 import "../../styling/App.css";
 import {OrbitControls} from "three/examples/jsm/controls/OrbitControls";
 
@@ -25,27 +26,67 @@ function Home() {
         // @ts-ignore
         threeContainer.current.appendChild(renderer.domElement);
 
-        // const geometry = new THREE.BoxGeometry();
-        const faceColors = [ 'red', 'green', 'blue', 'yellow', 'magenta', 'cyan' ];
-        const material = faceColors.map(color => { return new THREE.MeshLambertMaterial({ color: color })});
-        const geometry = new THREE.BoxGeometry(1, 1, 1);
-        const cube = new THREE.Mesh(geometry, material);
+        // const faceColors = [ 'red', 'green', 'blue', 'yellow', 'magenta', 'cyan' ];
+        // const material = faceColors.map(color => { return new THREE.MeshLambertMaterial({ color: color })});
+        // const geometry = new THREE.BoxGeometry(1, 1, 1); 
+        // const cube = new THREE.Mesh(geometry, material);
+        // scene.add(cube);
 
-        const planeGeometry = new THREE.PlaneGeometry(5, 5, 32 ,32);
-        const planeMaterial = new THREE.MeshStandardMaterial({color: 0xffffff, side: THREE.DoubleSide});
+        // const planeGeometry = new THREE.PlaneGeometry(5, 5, 32 ,32);
+        // const planeMaterial = new THREE.MeshStandardMaterial({color: 0xffffff, side: THREE.DoubleSide});
+        // const plane = new THREE.Mesh(planeGeometry, planeMaterial);
+        // plane.rotation.x = Math.PI / 2;
+        // plane.position.y = -1.5;
+        // cube.castShadow = true;
+        // scene.add(plane);
+
+        // ===plane testing=== 
+        // sliders
+        const gui = new dat.GUI()
+
+        // texture loader
+        const loader = new THREE.TextureLoader();
+        const height = loader.load('/static/height.png');
+        const texture = loader.load('/static/texture.jpg');
+        const alpha = loader.load('/alpha.png');
+        
+        const planeGeometry = new THREE.PlaneGeometry(5, 5, 64, 64);
+        const planeMaterial = new THREE.MeshStandardMaterial({
+            color: 'gray',
+            map: texture,
+            displacementMap: height,
+            displacementScale: 1.3
+        });
         const plane = new THREE.Mesh(planeGeometry, planeMaterial);
-        plane.rotation.x = Math.PI / 2;
-        plane.position.y = -1.5;
-        cube.castShadow = true;
-        scene.add(cube);
-        scene.add(plane);
+        scene.add(plane)
+        plane.rotation.x = 181;
+        gui.add(plane.rotation, 'x').min(0).max(2);
 
-        const light = new THREE.PointLight(0xffffff, 10, 10);
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
-        light.position.set(0, 0, 2);
-        light.castShadow = true;
-        scene.add(light);
-        scene.add(ambientLight);
+        const pointLight = new THREE.PointLight(0xffffff, 100);
+        pointLight.position.x = 2;
+        pointLight.position.y = 3;
+        pointLight.position.z = 4;
+        scene.add(pointLight);
+
+        gui.add(pointLight.position, 'x');
+        gui.add(pointLight.position, 'y');
+        gui.add(pointLight.position, 'z');
+
+        const col = {color: '#00ff00'}
+        gui.addColor(col, 'color').onChange(() => {
+            pointLight.color.set(col.color);
+        });
+
+
+
+
+        // ===========
+        // const light = new THREE.PointLight(0xffffff, 2);
+        // const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+        // light.position.set(0, 0, 2);
+        // light.castShadow = true;
+        // scene.add(light);
+        // scene.add(ambientLight);
 
         camera.position.z = 5;
 
@@ -53,8 +94,8 @@ function Home() {
         // Animation loop
         const animate = () => {
             requestAnimationFrame(animate);
-            cube.rotation.x += 0.01;
-            cube.rotation.y += 0.01;
+            // cube.rotation.x += 0.01;
+            // cube.rotation.y += 0.01;
 
             if (keys.up) {
                 camera.translateZ(-speed);
@@ -100,7 +141,7 @@ function Home() {
                 default: break;
             }
         }
-
+        
         function handleKeyUp(event: { keyCode: any; }) {
             const keyCode = event.keyCode;
             switch (keyCode) {
@@ -175,7 +216,7 @@ function Home() {
         // Cleanup on unmount
         return () => {
             renderer.dispose();
-            scene.remove(cube);
+            // scene.remove(cube);
             scene.remove(plane);
             window.removeEventListener('resize', handleResize);
             window.removeEventListener('keydown', handleKeyDown);
