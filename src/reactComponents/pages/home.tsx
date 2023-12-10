@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from "react";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 import "../../styling/App.css";
+import * as dat from "dat.gui"; // Import dat.gui library
 
 function Home() {
   const threeContainer = useRef(null);
@@ -15,7 +16,7 @@ function Home() {
     };
 
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x87ceeb); // Set background color to sky blue
+    scene.background = new THREE.Color(0x87ceeb);
 
     const camera = new THREE.PerspectiveCamera(
       75,
@@ -28,7 +29,14 @@ function Home() {
     threeContainer.current.appendChild(renderer.domElement);
 
     const cubeGeometry = new THREE.BoxGeometry(1, 1, 1);
-    const cubeMaterials = ['red', 'green', 'blue', 'yellow', 'magenta', 'cyan'].map(color => new THREE.MeshLambertMaterial({ color }));
+    const cubeMaterials = [
+      "red",
+      "green",
+      "blue",
+      "yellow",
+      "magenta",
+      "cyan",
+    ].map((color) => new THREE.MeshLambertMaterial({ color }));
     const cube = new THREE.Mesh(cubeGeometry, cubeMaterials);
     cube.castShadow = true;
     scene.add(cube);
@@ -42,32 +50,57 @@ function Home() {
 
     camera.position.z = 5;
 
-    const generateGrassTexture = () => {
-      const canvas = document.createElement("canvas");
-      canvas.width = canvas.height = 512;
-      const ctx = canvas.getContext("2d");
+    // Terrain Generation
+    const gui = new dat.GUI(); // Create dat.GUI instance
 
-      for (let x = 0; x < canvas.width; x++) {
-        for (let y = 0; y < canvas.height; y++) {
-          const value = Math.random() * 255;
-          ctx.fillStyle = `rgb(0, ${Math.floor(value * 1.5)}, 0)`;
-          ctx.fillRect(x, y, 1, 1);
-        }
-      }
+    const loader = new THREE.TextureLoader();
+    const height = loader.load("/static/height.png");
+    const texture = loader.load("/static/texture.jpg");
 
-      return new THREE.CanvasTexture(canvas);
-    };
+    /*const planeGeometry = new THREE.PlaneGeometry(300, 300, 64, 64);
+    const planeMaterial = new THREE.MeshStandardMaterial({
+      color: "green",
+      map: texture,
+      displacementMap: height,
+      displacementScale: 15,
+    });
+    const plane = new THREE.Mesh(planeGeometry, planeMaterial);
+    scene.add(plane);
+    plane.rotation.x = -Math.PI / 2;
+    plane.position.y = -10;
+
+    gui.add(plane.rotation, "x").min(0).max(2);*/
+
+    const pointLight = new THREE.PointLight(0xffffff, 100);
+    pointLight.position.x = 2;
+    pointLight.position.y = 3;
+    pointLight.position.z = 4;
+    scene.add(pointLight);
+
+    gui.add(pointLight.position, "x");
+    gui.add(pointLight.position, "y");
+    gui.add(pointLight.position, "z");
+
+    const col = { color: "#00ff00" };
+    gui.addColor(col, "color").onChange(() => {
+      pointLight.color.set(col.color);
+    });
 
     const generatePlane = (position) => {
       const planeGeometry = new THREE.PlaneGeometry(300, 300, 32, 32);
-      const grassTexture = generateGrassTexture();
-      const planeMaterial = new THREE.MeshStandardMaterial({ map: grassTexture, side: THREE.DoubleSide });
-      const plane = new THREE.Mesh(planeGeometry, planeMaterial);
-      plane.rotation.x = -Math.PI / 2;
-      plane.position.y = -2;
-      plane.position.x = position.x;
-      plane.position.z = position.z;
-      return plane;
+      const planeMaterial = new THREE.MeshStandardMaterial({
+        map: texture,
+        color: "green",
+        displacementMap: height,
+        displacementScale: 15,
+        side: THREE.DoubleSide,
+      });
+      const newPlane = new THREE.Mesh(planeGeometry, planeMaterial);
+      newPlane.rotation.x = -Math.PI / 2;
+      newPlane.position.y = -8;
+      newPlane.position.x = position.x;
+      newPlane.position.z = position.z;
+      return newPlane;
     };
 
     const handleResize = () => {
@@ -143,16 +176,20 @@ function Home() {
 
       const playerPosition = { x: camera.position.x, z: camera.position.z };
 
-      const planeSize = 30;
+      const distanceTraveled = 100;
       const buffer = 5;
 
-      let plane = scene.getObjectByName("plane");
-      if (!plane || Math.abs(playerPosition.x) > plane.position.x + planeSize - buffer || Math.abs(playerPosition.z) > plane.position.z + planeSize - buffer) {
-        if (plane) scene.remove(plane);
+      let terrain = scene.getObjectByName("terrain");
+      if (
+        !terrain ||
+        Math.abs(playerPosition.x) > terrain.position.x + distanceTraveled - buffer ||
+        Math.abs(playerPosition.z) > terrain.position.z + distanceTraveled - buffer
+      ) {
+        if (terrain) scene.remove(terrain);
 
-        plane = generatePlane(playerPosition);
-        plane.name = "plane";
-        scene.add(plane);
+        terrain = generatePlane(playerPosition);
+        terrain.name = "terrain";
+        scene.add(terrain);
       }
 
       renderer.render(scene, camera);
@@ -166,6 +203,7 @@ function Home() {
     return () => {
       renderer.dispose();
       scene.remove(cube);
+      scene.remove(terrain); // Update to remove terrain instead of plane
       window.removeEventListener("resize", handleResize);
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("keyup", handleKeyUp);
