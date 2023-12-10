@@ -1,7 +1,8 @@
 import React, { useEffect, useRef } from "react";
 import * as THREE from "three";
 import "../../styling/App.css";
-import * as dat from "dat.gui"; // Import dat.gui library
+import * as dat from "dat.gui";
+import {Sky} from "three/examples/jsm/objects/Sky";
 
 function Home() {
   const threeContainer = useRef(null);
@@ -15,9 +16,13 @@ function Home() {
       space: false,
       shift: false,
     };
+    let sky = new Sky();
+    let sun = new THREE.Vector3();
+    sky.scale.setScalar(500000);
+
+
 
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x87ceeb);
 
     const camera = new THREE.PerspectiveCamera(
       75,
@@ -28,6 +33,30 @@ function Home() {
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
     threeContainer.current.appendChild(renderer.domElement);
+
+    const effectController = {
+      turbidity: 10,
+      rayleigh: 3,
+      mieCoefficient: 0.005,
+      mieDirectionalG: 0.7,
+      inclination: 0.49, // default, elevation / inclination
+      azimuth: 0.25, // Facing front,
+      exposure: renderer.toneMappingExposure
+    };
+
+    function updateSun() {
+      const theta = Math.PI * ( effectController.inclination - 0.5 );
+      const phi = 2 * Math.PI * ( effectController.azimuth - 0.5 );
+      sun.x = Math.cos( phi );
+      sun.y = Math.sin( phi ) * Math.sin( theta );
+      sun.z = Math.sin( phi ) * Math.cos( theta );
+
+      sky.material.uniforms['sunPosition'].value.copy( sun );
+      renderer.render( scene, camera );
+    }
+
+    updateSun();
+    scene.add( sky );
 
     const cubeGeometry = new THREE.BoxGeometry(1, 1, 1);
     const cubeMaterials = [
@@ -72,7 +101,7 @@ function Home() {
       pointLight.color.set(col.color);
     });
 
-    const generatePlane = (position) => {
+    const generatePlane = (position: { x: any; y?: number; z: any; }) => {
       const planeGeometry = new THREE.PlaneGeometry(300, 300, 32, 32);
       const planeMaterial = new THREE.MeshStandardMaterial({
         map: texture,
@@ -98,7 +127,7 @@ function Home() {
       camera.updateProjectionMatrix();
     };
 
-    const handleMouseMove = (event) => {
+    const handleMouseMove = (event: { movementX: any; movementY: any; }) => {
       const { movementX, movementY } = event;
 
       // Adjust the sensitivity to control the rotation speed
@@ -114,7 +143,7 @@ function Home() {
       );
     };
 
-    const handleKeyDown = (event) => {
+    const handleKeyDown = (event: { keyCode: any; }) => {
       const keyCode = event.keyCode;
       switch (keyCode) {
         case 87:
@@ -140,7 +169,7 @@ function Home() {
       }
     };
 
-    const handleKeyUp = (event) => {
+    const handleKeyUp = (event: { keyCode: any; }) => {
       const keyCode = event.keyCode;
       switch (keyCode) {
         case 87:
@@ -208,7 +237,7 @@ function Home() {
         y: position.y,
         z: position.z,
       };
-    
+      const clock = new THREE.Clock();
       const distanceTraveled = 100;
     
       let terrain = scene.getObjectByName("terrain");
@@ -223,7 +252,22 @@ function Home() {
         terrain.name = "terrain";
         scene.add(terrain);
       }
-    
+      sky.material.uniforms['turbidity'].value = effectController.turbidity;
+      sky.material.uniforms['rayleigh'].value = effectController.rayleigh;
+      sky.material.uniforms['mieCoefficient'].value = effectController.mieCoefficient;
+      sky.material.uniforms['mieDirectionalG'].value = effectController.mieDirectionalG;
+
+      const uniforms = sky.material.uniforms;
+      uniforms['turbidity'].value = effectController.turbidity;
+      uniforms['rayleigh'].value = effectController.rayleigh;
+      uniforms['mieCoefficient'].value = effectController.mieCoefficient;
+      uniforms['mieDirectionalG'].value = effectController.mieDirectionalG;
+      const distance = 400000;
+      uniforms['up'].value.copy( camera.up ).normalize();
+      uniforms['sunPosition'].value.copy( sun );
+      effectController.azimuth += 2 * clock.getDelta();
+      if ( effectController.azimuth > 1 ) effectController.azimuth = 0;
+      updateSun();
       renderer.render(scene, camera);
     };
     
