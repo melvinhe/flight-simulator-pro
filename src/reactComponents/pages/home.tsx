@@ -1,6 +1,5 @@
 import React, { useEffect, useRef } from "react";
 import * as THREE from "three";
-import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 import "../../styling/App.css";
 import * as dat from "dat.gui"; // Import dat.gui library
 
@@ -9,10 +8,12 @@ function Home() {
 
   useEffect(() => {
     let keys = {
-      up: false,
-      down: false,
+      forward: false,
+      backward: false,
       left: false,
       right: false,
+      space: false,
+      shift: false,
     };
 
     const scene = new THREE.Scene();
@@ -50,26 +51,11 @@ function Home() {
 
     camera.position.z = 5;
 
-    // Terrain Generation
-    const gui = new dat.GUI(); // Create dat.GUI instance
+    const gui = new dat.GUI();
 
     const loader = new THREE.TextureLoader();
     const height = loader.load("/static/height.png");
     const texture = loader.load("/static/texture.jpg");
-
-    /*const planeGeometry = new THREE.PlaneGeometry(300, 300, 64, 64);
-    const planeMaterial = new THREE.MeshStandardMaterial({
-      color: "green",
-      map: texture,
-      displacementMap: height,
-      displacementScale: 15,
-    });
-    const plane = new THREE.Mesh(planeGeometry, planeMaterial);
-    scene.add(plane);
-    plane.rotation.x = -Math.PI / 2;
-    plane.position.y = -10;
-
-    gui.add(plane.rotation, "x").min(0).max(2);*/
 
     const pointLight = new THREE.PointLight(0xffffff, 100);
     pointLight.position.x = 2;
@@ -112,22 +98,42 @@ function Home() {
       camera.updateProjectionMatrix();
     };
 
-    const controls = new OrbitControls(camera, renderer.domElement);
+    const handleMouseMove = (event) => {
+      const { movementX, movementY } = event;
+
+      // Adjust the sensitivity to control the rotation speed
+      const sensitivity = 0.002;
+
+      camera.rotation.y -= movementX * sensitivity;
+      camera.rotation.z -= movementY * sensitivity;
+
+      // Clamp vertical rotation to avoid camera flipping
+      camera.rotation.z = Math.max(
+        -Math.PI / 2,
+        Math.min(Math.PI / 2, camera.rotation.x)
+      );
+    };
 
     const handleKeyDown = (event) => {
       const keyCode = event.keyCode;
       switch (keyCode) {
         case 87:
-          keys.up = true;
+          keys.forward = true;
           break;
         case 83:
-          keys.down = true;
+          keys.backward = true;
           break;
         case 65:
           keys.left = true;
           break;
         case 68:
           keys.right = true;
+          break;
+        case 32:
+          keys.space = true;
+          break;
+        case 16:
+          keys.shift = true;
           break;
         default:
           break;
@@ -138,16 +144,22 @@ function Home() {
       const keyCode = event.keyCode;
       switch (keyCode) {
         case 87:
-          keys.up = false;
+          keys.forward = false;
           break;
         case 83:
-          keys.down = false;
+          keys.backward = false;
           break;
         case 65:
           keys.left = false;
           break;
         case 68:
           keys.right = false;
+          break;
+        case 32:
+          keys.space = false;
+          break;
+        case 16:
+          keys.shift = false;
           break;
         default:
           break;
@@ -158,53 +170,82 @@ function Home() {
       requestAnimationFrame(animate);
       cube.rotation.x += 0.01;
       cube.rotation.y += 0.01;
-
+    
       const speed = 0.1;
-
-      if (keys.up) {
-        camera.position.z -= speed;
+    
+      const forward = new THREE.Vector3(0, 0, -1);
+      const right = new THREE.Vector3(1, 0, 0);
+      const up = new THREE.Vector3(0, 1, 0);
+    
+      const rotation = new THREE.Euler().setFromQuaternion(camera.quaternion);
+      const position = camera.position;
+    
+      forward.applyEuler(rotation);
+      right.applyEuler(rotation);
+      up.applyEuler(rotation);
+    
+      if (keys.forward) {
+        position.add(forward.multiplyScalar(speed));
       }
-      if (keys.down) {
-        camera.position.z += speed;
+      if (keys.backward) {
+        position.add(forward.multiplyScalar(-speed));
       }
       if (keys.left) {
-        camera.position.x -= speed;
+        position.add(right.multiplyScalar(-speed));
       }
       if (keys.right) {
-        camera.position.x += speed;
+        position.add(right.multiplyScalar(speed));
       }
-
-      const playerPosition = { x: camera.position.x, z: camera.position.z };
-
+      if (keys.space) {
+        position.add(up.multiplyScalar(speed));
+      }
+      if (keys.shift) {
+        position.add(up.multiplyScalar(-speed));
+      }
+    
+      const playerPosition = {
+        x: position.x,
+        y: position.y,
+        z: position.z,
+      };
+    
       const distanceTraveled = 100;
-      const buffer = 5;
-
+    
       let terrain = scene.getObjectByName("terrain");
       if (
         !terrain ||
-        Math.abs(playerPosition.x) > terrain.position.x + distanceTraveled - buffer ||
-        Math.abs(playerPosition.z) > terrain.position.z + distanceTraveled - buffer
+        Math.abs(playerPosition.x - terrain.position.x) > distanceTraveled ||
+        Math.abs(playerPosition.z - terrain.position.z) > distanceTraveled
       ) {
         if (terrain) scene.remove(terrain);
-
+    
         terrain = generatePlane(playerPosition);
         terrain.name = "terrain";
         scene.add(terrain);
       }
-
+    
       renderer.render(scene, camera);
     };
+    
+
+    const lockPointer = () => {
+      threeContainer.current.requestPointerLock();
+    };
+
+    threeContainer.current.addEventListener("click", lockPointer);
 
     animate();
     window.addEventListener("resize", handleResize);
+    window.addEventListener("mousemove", handleMouseMove);
     window.addEventListener("keydown", handleKeyDown);
     window.addEventListener("keyup", handleKeyUp);
 
     return () => {
       renderer.dispose();
       scene.remove(cube);
-      scene.remove(terrain); // Update to remove terrain instead of plane
+      scene.remove(terrain);
       window.removeEventListener("resize", handleResize);
+      window.removeEventListener("mousemove", handleMouseMove);
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("keyup", handleKeyUp);
     };
