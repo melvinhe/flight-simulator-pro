@@ -31,7 +31,8 @@
     "react-imask": "^6.6.1",
     "react-number-format": "^5.1.4",
     "react-router-dom": "^6.10.0",
-    "three": "^0.158.0"
+    "three": "^0.158.0",
+    "ts-perlin-simplex": "^0.0.3"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^5.16.5",

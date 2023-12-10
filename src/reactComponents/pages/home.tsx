@@ -4,11 +4,18 @@ import "../../styling/App.css";
 import {OrbitControls} from "three/examples/jsm/controls/OrbitControls";
 import { FirstPersonControls } from "three/examples/jsm/controls/FirstPersonControls";
 import {Sky} from "three/examples/jsm/objects/Sky";
+import * as Noise from 'ts-perlin-simplex';
 
 function Home() {
     const threeContainer = useRef(null);
 
     useEffect(() => {
+        // let simplex = new Noise.SimplexNoise();
+        const loader = new THREE.TextureLoader();
+
+        let tree1 = loader.load("src/assets/tree1.png");
+        let tree2 = loader.load("src/assets/tree2.png");
+
         let sky = new Sky();
         let sun = new THREE.Vector3();
 
@@ -176,6 +183,7 @@ function Home() {
     return (
         <div className="App" role="region">
             <div className={"threeContainer"} ref={threeContainer} />
+            {/*<img src={"src/assets/tree1.png"} />*/}
         </div>
     );
 }
