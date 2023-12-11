@@ -53,7 +53,6 @@ function Home() {
     airplaneRotationY: number;
     airplaneRotationZ: number;
     cameraFOV: number;
-    
   }
 
   const toggleFirstPersonView = () => {
@@ -78,28 +77,34 @@ function Home() {
       airplaneRotationX: 0,
       airplaneRotationY: 0,
       airplaneRotationZ: 0,
-      cameraFOV: 75
+      cameraFOV: 75,
     };
 
     // Add GUI controls
     // Add GUI controls
-    gui.add(settings, 'speed', 0, 10).onChange((value: number) => {
+    gui.add(settings, "speed", 0, 10).onChange((value: number) => {
       speed = value;
     });
-    gui.add(settings, 'airplaneRotationX', -Math.PI, Math.PI).onChange((value: number) => {
-      if (airplaneModel.current) airplaneModel.current.rotation.x = value;
-    });
-    gui.add(settings, 'airplaneRotationY', -Math.PI, Math.PI).onChange((value: number) => {
-      if (airplaneModel.current) airplaneModel.current.rotation.y = value;
-    });
-    gui.add(settings, 'airplaneRotationZ', -Math.PI, Math.PI).onChange((value: number) => {
-      if (airplaneModel.current) airplaneModel.current.rotation.z = value;
-    });
-    gui.add(settings, 'cameraFOV', 45, 90).onChange((value: number) => {
+    gui
+      .add(settings, "airplaneRotationX", -Math.PI, Math.PI)
+      .onChange((value: number) => {
+        if (airplaneModel.current) airplaneModel.current.rotation.x = value;
+      });
+    gui
+      .add(settings, "airplaneRotationY", -Math.PI, Math.PI)
+      .onChange((value: number) => {
+        if (airplaneModel.current) airplaneModel.current.rotation.y = value;
+      });
+    gui
+      .add(settings, "airplaneRotationZ", -Math.PI, Math.PI)
+      .onChange((value: number) => {
+        if (airplaneModel.current) airplaneModel.current.rotation.z = value;
+      });
+    gui.add(settings, "cameraFOV", 45, 90).onChange((value: number) => {
       camera.fov = value;
       camera.updateProjectionMatrix();
     });
-    
+
     // Three.js scene setup
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(
@@ -304,32 +309,39 @@ function Home() {
 
       camera.lookAt(airplaneModel.current.position);
 
-
-
-      //fire 
+      //fire
 
       const createFireEffect = () => {
         const particles = 500;
         const geometry = new THREE.BufferGeometry();
         const positions = [];
         const colors = [];
-      
+
         for (let i = 0; i < particles; i++) {
           // positions
           positions.push((Math.random() - 0.5) * 2);
           positions.push((Math.random() - 0.5) * 2);
           positions.push((Math.random() - 0.5) * 2);
-      
+
           // colors
           colors.push(1, 0.4, 0); // fire-like color
         }
-      
-        geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
-        geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
-      
-        const material = new THREE.PointsMaterial({ size: 0.04, vertexColors: true });
+
+        geometry.setAttribute(
+          "position",
+          new THREE.Float32BufferAttribute(positions, 3)
+        );
+        geometry.setAttribute(
+          "color",
+          new THREE.Float32BufferAttribute(colors, 3)
+        );
+
+        const material = new THREE.PointsMaterial({
+          size: 0.04,
+          vertexColors: true,
+        });
         const particleSystem = new THREE.Points(geometry, material);
-      
+
         return particleSystem;
       };
 
