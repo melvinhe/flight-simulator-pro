@@ -4,17 +4,25 @@ import "../../styling/App.css";
 import {OrbitControls} from "three/examples/jsm/controls/OrbitControls";
 import { FirstPersonControls } from "three/examples/jsm/controls/FirstPersonControls";
 import {Sky} from "three/examples/jsm/objects/Sky";
-import * as Noise from 'ts-perlin-simplex';
+import {SimplexNoise} from "three/examples/jsm/math/SimplexNoise";
 
 function Home() {
     const threeContainer = useRef(null);
 
     useEffect(() => {
-        // let simplex = new Noise.SimplexNoise();
+        let simplex = new SimplexNoise();
+
         const loader = new THREE.TextureLoader();
 
         let tree1 = loader.load("src/assets/tree1.png");
         let tree2 = loader.load("src/assets/tree2.png");
+        const makeTree = (texture: THREE.Texture, position: THREE.Vector3) => {
+            const tree = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture }));
+            tree.scale.set(20, 20, 20);
+            tree.position.copy(position);
+
+            return tree;
+        };
 
         let sky = new Sky();
         let sun = new THREE.Vector3();
@@ -26,7 +34,7 @@ function Home() {
 
         // Three.js scene setup
         const scene = new THREE.Scene();
-        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 10000);
         const renderer = new THREE.WebGLRenderer({ antialias: true});
         renderer.setSize(window.innerWidth, window.innerHeight);
         // @ts-ignore
@@ -73,6 +81,22 @@ function Home() {
         terrain.rotation.x = -Math.PI / 2;
         terrain.position.y = -1.5;
         scene.add(terrain);
+
+        const vertices = terrainGeometry.getAttribute('position').array;
+        console.log(vertices)
+        for (let i = 0; i < vertices.length; i += 3) {
+            const x = vertices[i];
+            const y = vertices[i+1];
+            const z = vertices[i+2];
+
+            const noiseValue = simplex.noise(x, y);
+            if (noiseValue > 0.8) { // Adjust the threshold for more/less tree density.
+                const position = new THREE.Vector3(x, z+5, y);
+                const treeType = Math.random() > 0.5 ? tree1 : tree2;
+                const tree = makeTree(treeType, position);
+                scene.add(tree);
+            }
+        }
 
         const light = new THREE.PointLight(0xffffff, 10, 10);
         const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
@@ -183,7 +207,6 @@ function Home() {
     return (
         <div className="App" role="region">
             <div className={"threeContainer"} ref={threeContainer} />
-            {/*<img src={"src/assets/tree1.png"} />*/}
         </div>
     );
 }
