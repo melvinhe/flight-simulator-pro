@@ -129,19 +129,29 @@ function Home() {
 
     const handleMouseMove = (event: { movementX: any; movementY: any; }) => {
       const { movementX, movementY } = event;
-
+    
       // Adjust the sensitivity to control the rotation speed
       const sensitivity = 0.002;
-
-      camera.rotation.y -= movementX * sensitivity;
-      camera.rotation.z -= movementY * sensitivity;
-
+    
+      const quaternion = new THREE.Quaternion();
+      const euler = new THREE.Euler();
+    
+      euler.setFromQuaternion(camera.quaternion, 'YXZ');
+    
+      euler.y -= movementX * sensitivity;
+      euler.x -= movementY * sensitivity;
+    
       // Clamp vertical rotation to avoid camera flipping
-      camera.rotation.z = Math.max(
+      euler.x = Math.max(
         -Math.PI / 2,
-        Math.min(Math.PI / 2, camera.rotation.x)
+        Math.min(Math.PI / 2, euler.x)
       );
+    
+      quaternion.setFromEuler(euler, 'YXZ');
+    
+      camera.setRotationFromQuaternion(quaternion);
     };
+    
 
     const handleKeyDown = (event: { keyCode: any; }) => {
       const keyCode = event.keyCode;
@@ -212,7 +222,16 @@ function Home() {
       forward.applyEuler(rotation);
       right.applyEuler(rotation);
       up.applyEuler(rotation);
-    
+
+      const playerPosition = {
+        x: position.x,
+        y: position.y,
+        z: position.z,
+      };
+      const clock = new THREE.Clock();
+      const distanceTraveled = 100;
+      let terrain = scene.getObjectByName("terrain");
+
       if (keys.forward) {
         position.add(forward.multiplyScalar(speed));
       }
@@ -229,18 +248,16 @@ function Home() {
         position.add(up.multiplyScalar(speed));
       }
       if (keys.shift) {
-        position.add(up.multiplyScalar(-speed));
+        if (playerPosition.y > terrain.position.y + 8) {
+          position.add(up.multiplyScalar(-speed));
+        }
+        // Limit downward movement when shift is pressed
+        //const minY = terrain.position.y + 1; // Adjust this value as needed
+        //position.y = Math.max(minY, position.y - up.y * speed);
       }
     
-      const playerPosition = {
-        x: position.x,
-        y: position.y,
-        z: position.z,
-      };
-      const clock = new THREE.Clock();
-      const distanceTraveled = 100;
+      
     
-      let terrain = scene.getObjectByName("terrain");
       if (
         !terrain ||
         Math.abs(playerPosition.x - terrain.position.x) > distanceTraveled ||
