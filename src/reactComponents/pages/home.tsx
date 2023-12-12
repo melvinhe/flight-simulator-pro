@@ -32,6 +32,7 @@ function Home() {
     );
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
+    // @ts-ignore
     threeContainer.current.appendChild(renderer.domElement);
 
     const effectController = {
@@ -107,8 +108,9 @@ function Home() {
         map: texture,
         color: "green",
         displacementMap: height,
-        displacementScale: 15,
+        displacementScale: 10,
         side: THREE.DoubleSide,
+        wireframe: false
       });
       const newPlane = new THREE.Mesh(planeGeometry, planeMaterial);
       newPlane.rotation.x = -Math.PI / 2;
@@ -117,6 +119,42 @@ function Home() {
       newPlane.position.z = position.z;
       return newPlane;
     };
+
+    // gui to toggle collision:
+    let collision = true;
+    gui.add({ collision }, 'collision').onChange((value) => {
+        collision = value;
+    });
+
+    function deformTerrain(point: THREE.Vector3, plane: THREE.Mesh){
+        if (collision){
+            const planeGeometry = plane.geometry;
+            const vertices = planeGeometry.attributes.position.array;
+            const radius = 20;
+            const intensity = 30;
+            // console.log(collision);
+            for (let i = 0; i < vertices.length; i += 3) {
+                const vertex = new THREE.Vector3(vertices[i], vertices[i + 1], vertices[i + 2]);
+                // console.log("hi");
+                // console.log("vertex before: ", vertex.clone().toArray());
+                let world = vertex.applyMatrix4(plane.matrixWorld);
+                let worldPoint = new THREE.Vector3(...world.clone().toArray());
+                // console.log("vertex after: ", worldPoint);
+                const distance = point.distanceTo(worldPoint);
+                // console.log(distance);
+
+                if (distance < radius){
+                    const deformAmount = intensity * (1 - distance / radius);
+                    vertices[i + 2] -= deformAmount; // adjust the z-coord
+                    // console.log("deform at: ", worldPoint);
+                    // console.log("intersection at: ", point);
+                }
+            }
+            planeGeometry.attributes.position.needsUpdate = true;
+
+        }
+    }
+    
 
     const handleResize = () => {
       const width = window.innerWidth;
@@ -204,14 +242,19 @@ function Home() {
           break;
       }
     };
+    // bool if crashed
+    let crash = false;
+    let speed = 0.15; //
 
     const animate = () => {
+      if (crash){
+        speed = 0.09;
+        camera.translateZ(speed);    
+      }
       requestAnimationFrame(animate);
       cube.rotation.x += 0.01;
       cube.rotation.y += 0.01;
-    
-      const speed = 0.1;
-    
+        
       const forward = new THREE.Vector3(0, 0, -1);
       const right = new THREE.Vector3(1, 0, 0);
       const up = new THREE.Vector3(0, 1, 0);
@@ -230,7 +273,7 @@ function Home() {
       };
       const clock = new THREE.Clock();
       const distanceTraveled = 100;
-      let terrain = scene.getObjectByName("terrain");
+      let terrain = scene.getObjectByName("terrain") as THREE.Mesh | undefined;
 
       if (keys.forward) {
         position.add(forward.multiplyScalar(speed));
@@ -248,6 +291,7 @@ function Home() {
         position.add(up.multiplyScalar(speed));
       }
       if (keys.shift) {
+        // @ts-ignore
         if (playerPosition.y > terrain.position.y + 8) {
           position.add(up.multiplyScalar(-speed));
         }
@@ -285,14 +329,32 @@ function Home() {
       effectController.azimuth += 2 * clock.getDelta();
       if ( effectController.azimuth > 1 ) effectController.azimuth = 0;
       updateSun();
+
+      // Raycaster & collision logic
+      const raycaster = new THREE.Raycaster();
+      const rayDir = new THREE.Vector3();
+
+      camera.getWorldDirection(rayDir);
+      raycaster.set(camera.position, rayDir);
+      const intersects = raycaster.intersectObject(terrain);
+      // if intersects:
+      if (intersects.length > 0 && intersects[0].distance < 30){ 
+          console.log("intersect with terrain, point: ", intersects[0].point);
+          const point = intersects[0].point;
+          crash = true;
+          deformTerrain(point, terrain);
+      }
+
+
       renderer.render(scene, camera);
     };
     
 
     const lockPointer = () => {
+      // @ts-ignore
       threeContainer.current.requestPointerLock();
     };
-
+    // @ts-ignore
     threeContainer.current.addEventListener("click", lockPointer);
 
     animate();
@@ -304,7 +366,7 @@ function Home() {
     return () => {
       renderer.dispose();
       scene.remove(cube);
-      scene.remove(terrain);
+      // scene.remove(terrain);
       window.removeEventListener("resize", handleResize);
       window.removeEventListener("mousemove", handleMouseMove);
       window.removeEventListener("keydown", handleKeyDown);
