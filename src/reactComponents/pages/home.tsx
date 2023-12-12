@@ -245,11 +245,15 @@ function Home() {
     // bool if crashed
     let crash = false;
     let speed = 0.15; //
-
+    const crashParticles = new THREE.Group();
+    scene.add(crashParticles);
     const animate = () => {
       if (crash){
         speed = 0.09;
-        camera.translateZ(speed);    
+        camera.translateZ(speed);   
+        // Create crash particles
+        const crashPosition = camera.position.clone();
+        createParticles(crashPosition, crashParticles); 
       }
       requestAnimationFrame(animate);
       cube.rotation.x += 0.01;
@@ -291,10 +295,11 @@ function Home() {
         position.add(up.multiplyScalar(speed));
       }
       if (keys.shift) {
+        position.add(up.multiplyScalar(-speed));
         // @ts-ignore
-        if (playerPosition.y > terrain.position.y + 8) {
+        /*if (playerPosition.y > terrain.position.y + 8) {
           position.add(up.multiplyScalar(-speed));
-        }
+        }*/
         // Limit downward movement when shift is pressed
         //const minY = terrain.position.y + 1; // Adjust this value as needed
         //position.y = Math.max(minY, position.y - up.y * speed);
@@ -348,6 +353,42 @@ function Home() {
 
       renderer.render(scene, camera);
     };
+
+    // Function to create crash particles
+    function createParticles(position, particleSystem) {
+      const particleCount = 10;
+      const particleGeometry = new THREE.BufferGeometry();
+      const smokeTexture = new THREE.TextureLoader().load("/static/smoke.png");
+      const fireTexture = new THREE.TextureLoader().load("/static/fire.png");
+
+      const particleMaterial = new THREE.PointsMaterial({
+        size: 0.1,
+        map: fireTexture, // Use smoke texture for crashParticles
+        transparent: true,
+        blending: THREE.AdditiveBlending,
+        depthTest: false,
+      });
+
+      const positions = new Float32Array(particleCount * 3);
+      const particleSpeed = 0.2;
+      for (let i = 0; i < particleCount * 3; i += 3) {
+        positions[i] = position.x + (Math.random() - 0.5) * particleSpeed;
+        positions[i + 1] = position.y + (Math.random() - 0.5) * particleSpeed;
+        positions[i + 2] = position.z + (Math.random() - 0.5) * particleSpeed;
+      }
+
+      particleGeometry.setAttribute(
+        "position",
+        new THREE.BufferAttribute(positions, 3)
+      );
+
+      const particles = new THREE.Points(particleGeometry, particleMaterial);
+      particleSystem.add(particles);
+
+      setTimeout(() => {
+        particleSystem.remove(particles);
+      }, 20000);
+    }
     
 
     const lockPointer = () => {
