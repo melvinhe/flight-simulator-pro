@@ -3,11 +3,13 @@ import * as THREE from "three";
 import "../../styling/App.css";
 import * as dat from "dat.gui";
 import {Sky} from "three/examples/jsm/objects/Sky";
+import {SimplexNoise} from "three/examples/jsm/math/SimplexNoise";
 
 function Home() {
   const threeContainer = useRef(null);
 
   useEffect(() => {
+    let simplex = new SimplexNoise();
     let keys = {
       forward: false,
       backward: false,
@@ -101,15 +103,40 @@ function Home() {
       pointLight.color.set(col.color);
     });
 
+    let size = 300; // size of your terrain
+    let quality = 1; // noise quality
+    let maxHeight = 50; // maximum height of a terrain feature
+
     const generatePlane = (position: { x: any; y?: number; z: any; }) => {
-      const planeGeometry = new THREE.PlaneGeometry(300, 300, 32, 32);
+
+      const planeGeometry = new THREE.PlaneGeometry(size, size, 32, 32);
+      const vertices = planeGeometry.getAttribute('position').array;
+
+      for (let i = 0; i < vertices.length; i+=3) {
+
+        // Normalize x and z to [-0.5, 0.5]
+        let x = vertices[i] / size - 0.5;
+        let z = vertices[i + 1] / size - 0.5;
+
+        x += position.x / size;
+        z += position.z;
+
+        // Get the elevation value from the noise function
+        let elevation = simplex.noise(x * quality, z * quality);
+
+        // Adjust y position based on noise height
+        vertices[i + 2] = elevation * maxHeight;
+      }
+
+      // Notify Three.js that the positions have changed.
+      planeGeometry.getAttribute('position').needsUpdate = true;
+
       const planeMaterial = new THREE.MeshStandardMaterial({
-        map: texture,
-        color: "green",
-        displacementMap: height,
-        displacementScale: 15,
+        color: 'green',
         side: THREE.DoubleSide,
+        wireframe: true, // Enable wireframe view for debugging
       });
+
       const newPlane = new THREE.Mesh(planeGeometry, planeMaterial);
       newPlane.rotation.x = -Math.PI / 2;
       newPlane.position.y = -8;
@@ -195,12 +222,22 @@ function Home() {
       }
     };
 
+
+    let terrains: THREE.Mesh[] = [];
+    let currentTerrainIndex = 4;
+    for (let i = -5; i < 5; i++) {
+      let terrain = generatePlane({ x: 0, y: 0, z: i * 300 });
+      terrain.name = `terrain${i + 5}`;
+      terrains[i + 5] = terrain;
+      scene.add(terrain);
+    }
+
     const animate = () => {
       requestAnimationFrame(animate);
       cube.rotation.x += 0.01;
       cube.rotation.y += 0.01;
     
-      const speed = 0.1;
+      const speed = 5.1;
     
       const forward = new THREE.Vector3(0, 0, -1);
       const right = new THREE.Vector3(1, 0, 0);
@@ -239,19 +276,45 @@ function Home() {
       };
       const clock = new THREE.Clock();
       const distanceTraveled = 100;
-    
-      let terrain = scene.getObjectByName("terrain");
-      if (
-        !terrain ||
-        Math.abs(playerPosition.x - terrain.position.x) > distanceTraveled ||
-        Math.abs(playerPosition.z - terrain.position.z) > distanceTraveled
-      ) {
-        if (terrain) scene.remove(terrain);
-    
-        terrain = generatePlane(playerPosition);
-        terrain.name = "terrain";
-        scene.add(terrain);
+
+      if (camera.position.z - terrains[currentTerrainIndex].position.z > 300) {
+        // Shift to the next terrain
+        console.log("shift to next terrain");
+        console.log("currentTerrainIndex", currentTerrainIndex)
+        currentTerrainIndex = (currentTerrainIndex + 1) % terrains.length;
+        // Remove the farthest terrain behind
+        let farthestTerrainBehind = terrains[0];
+        scene.remove(farthestTerrainBehind);
+        terrains.shift();
+
+        // Create a new terrain in the front
+        let newTerrainZ = terrains[terrains.length - 1].position.z + 300;
+        let newTerrain = generatePlane({ x: 0, y: 0, z: newTerrainZ });
+        newTerrain.name = `terrain${terrains.length}`;
+        terrains.push(newTerrain);
+        scene.add(newTerrain);
       }
+
+      // When the player returns to the previous terrain
+      else if (camera.position.z < terrains[currentTerrainIndex].position.z) {
+        console.log(terrains)
+        console.log("shift to previous terrain");
+        console.log("currentTerrainIndex", currentTerrainIndex)
+        // Shift to the previous terrain
+        currentTerrainIndex = (currentTerrainIndex - 1 + terrains.length) % terrains.length;
+        // Remove the farthest terrain in front
+        let farthestTerrainInFront = terrains[terrains.length - 1];
+        scene.remove(farthestTerrainInFront);
+        terrains.pop();
+
+        // Create a new terrain in the back
+        let newTerrainZ = terrains[0].position.z - 300;
+        let newTerrain = generatePlane({ x: 0, y: 0, z: newTerrainZ });
+        newTerrain.name = `terrain${terrains.length}`;
+        terrains.unshift(newTerrain);
+        scene.add(newTerrain);
+      }
+
       sky.material.uniforms['turbidity'].value = effectController.turbidity;
       sky.material.uniforms['rayleigh'].value = effectController.rayleigh;
       sky.material.uniforms['mieCoefficient'].value = effectController.mieCoefficient;
