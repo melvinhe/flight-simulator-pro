@@ -16,9 +16,12 @@ function Home() {
 
         let tree1 = loader.load("src/assets/tree1.png");
         let tree2 = loader.load("src/assets/tree2.png");
-        const makeTree = (texture: THREE.Texture, position: THREE.Vector3) => {
+        let rock1 = loader.load("src/assets/rock1.png");
+        let rock2 = loader.load("src/assets/rock2.png");
+        let rock3 = loader.load("src/assets/rock3.png");
+        const makeObject = (texture: THREE.Texture, position: THREE.Vector3, size: number) => {
             const tree = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture }));
-            tree.scale.set(20, 20, 20);
+            tree.scale.set(size, size, size);
             tree.position.copy(position);
 
             return tree;
@@ -90,13 +93,20 @@ function Home() {
             const z = vertices[i+2];
 
             const noiseValue = simplex.noise(x, y);
-            if (noiseValue > 0.8) { // Adjust the threshold for more/less tree density.
-                const position = new THREE.Vector3(x, z+5, y);
+            if (noiseValue > 0.8) { // Adjust this threshold for tree density.
+                const position = new THREE.Vector3(x, z+7, y);
                 const treeType = Math.random() > 0.5 ? tree1 : tree2;
-                const tree = makeTree(treeType, position);
+                const tree = makeObject(treeType, position, 20);
                 scene.add(tree);
+            } else if (noiseValue > 0.78) { // Adjust this threshold for rock density.
+                const position = new THREE.Vector3(x, z+2, y);
+                const rockTypeOptions = [rock1, rock2, rock3];
+                const rockType = rockTypeOptions[Math.floor(Math.random() * rockTypeOptions.length)];
+                const rock = makeObject(rockType, position, 10);
+                scene.add(rock);
             }
         }
+
 
         const light = new THREE.PointLight(0xffffff, 10, 10);
         const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
