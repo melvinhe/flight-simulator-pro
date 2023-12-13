@@ -15,7 +15,7 @@ function Home() {
     //plane
     const airplaneModel = useRef<THREE.Object3D>(new THREE.Object3D()); // Store the airplane model reference
     const propellerRef = useRef<THREE.Object3D>(new THREE.Object3D()); // Store the propeller model reference
-    const cameraOffset = new THREE.Vector3(0, 5, -5); // Desired offset from the airplane
+    const cameraOffset = new THREE.Vector3(0, 3, -5); // Desired offset from the airplane
 
     //reset position
     let lastInteractionTime = Date.now();
@@ -68,7 +68,6 @@ function Home() {
     }
 
     useEffect(() => {
-
 
 
         const makeObject = (texture: THREE.Texture, position: THREE.Vector3, size: number) => {
@@ -204,7 +203,7 @@ function Home() {
                 });
             }
 
-            planeBody.scale.set(1, 1, 1);
+            planeBody.scale.set(3, 3, 3);
 
             airplaneModel.current = planeBody; // Reference
             airplaneModel.current.add(cameraLookAtTarget);
@@ -252,7 +251,7 @@ function Home() {
 
             // Define the base turn rate and speed step
             const baseTurnRate = 0.001;
-            const speedStep = 0.01;
+            const speedStep = 0.1;
             const maxTurnRate = Math.PI / 2; // Maximum turn rate in radians (90 degrees)
 
             // Calculate the turn rate based on the current rotation around the Z-axis
@@ -285,10 +284,6 @@ function Home() {
                 forward,
                 speed * speedStep
             );
-
-
-
-
 
 
             // Ensure the cameraOffset is correctly positioned relative to the airplane model
@@ -349,7 +344,7 @@ function Home() {
         const updatePropellerRotation = (delta: number) => {
             if (!propellerRef.current) return;
 
-            const propellerRotationSpeed = speed * 5;
+            const propellerRotationSpeed = speed * 50;
             propellerRef.current.rotation.z += propellerRotationSpeed * delta;
         };
 
