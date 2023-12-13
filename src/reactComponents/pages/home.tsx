@@ -5,11 +5,34 @@ import * as dat from "dat.gui";
 import {Sky} from "three/examples/jsm/objects/Sky";
 import {SimplexNoise} from "three/examples/jsm/math/SimplexNoise";
 
+
 function Home() {
   const threeContainer = useRef(null);
 
   useEffect(() => {
-    let simplex = new SimplexNoise();
+
+    class SeededRandom {
+      private seed: number;
+      constructor(seed = 0) {
+        this.seed = seed;
+      }
+
+      random() {
+        // Example of a simple LCG
+        const a = 1664525;
+        const c = 1013904223;
+        const m = 4294967296; // 2^32
+        this.seed = (a * this.seed + c) % m;
+        return this.seed / m;
+      }
+    }
+
+// Instantiate your custom random number generator with a seed of 0
+    const seededRandom = new SeededRandom(0);
+
+// Now, pass this to the SimplexNoise constructor
+    const simplex = new SimplexNoise(seededRandom);
+    // let simplex = new SimplexNoise(Math.random);
     let keys = {
       forward: false,
       backward: false,
@@ -30,7 +53,7 @@ function Home() {
       75,
       window.innerWidth / window.innerHeight,
       0.1,
-      1000
+      300000
     );
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
@@ -85,7 +108,6 @@ function Home() {
     const gui = new dat.GUI();
 
     const loader = new THREE.TextureLoader();
-    const height = loader.load("/static/height.png");
     const texture = loader.load("/static/texture.jpg");
 
     const pointLight = new THREE.PointLight(0xffffff, 100);
@@ -103,26 +125,28 @@ function Home() {
       pointLight.color.set(col.color);
     });
 
-    let size = 300; // size of your terrain
+
+    // scene.fog = new THREE.Fog(0xffffff, 200000, 500000);
+    let size = 30000; // size of your terrain
     let quality = 1; // noise quality
-    let maxHeight = 50; // maximum height of a terrain feature
+    let maxHeight = 5000; // maximum height of a terrain feature
 
-    const generatePlane = (position: { x: any; y?: number; z: any; }) => {
+    const generatePlane = (position: { x: any; y: number; z: any; }) => {
 
-      const planeGeometry = new THREE.PlaneGeometry(size, size, 32, 32);
+      const planeGeometry = new THREE.PlaneGeometry(size, size, 500, 500);
       const vertices = planeGeometry.getAttribute('position').array;
 
       for (let i = 0; i < vertices.length; i+=3) {
 
-        // Normalize x and z to [-0.5, 0.5]
-        let x = vertices[i] / size - 0.5;
-        let z = vertices[i + 1] / size - 0.5;
-
-        x += position.x / size;
-        z += position.z;
+        let x = (vertices[i] / size) + (position.x / size);
+        let z = (vertices[i + 1] / size) + (-position.z / size);
 
         // Get the elevation value from the noise function
-        let elevation = simplex.noise(x * quality, z * quality);
+        let elevation = (
+            simplex.noise(x * quality * 2, z * quality * 2) * 0.5 +
+            simplex.noise(x * quality * 4, z * quality * 4) * 0.25 +
+            simplex.noise(x * quality * 8, z * quality * 8) * 0.125
+        );
 
         // Adjust y position based on noise height
         vertices[i + 2] = elevation * maxHeight;
@@ -133,8 +157,9 @@ function Home() {
 
       const planeMaterial = new THREE.MeshStandardMaterial({
         color: 'green',
+        map: texture,
         side: THREE.DoubleSide,
-        wireframe: true, // Enable wireframe view for debugging
+        wireframe: false, // Enable wireframe view for debugging
       });
 
       const newPlane = new THREE.Mesh(planeGeometry, planeMaterial);
@@ -223,13 +248,24 @@ function Home() {
     };
 
 
-    let terrains: THREE.Mesh[] = [];
-    let currentTerrainIndex = 4;
-    for (let i = -5; i < 5; i++) {
-      let terrain = generatePlane({ x: 0, y: 0, z: i * 300 });
-      terrain.name = `terrain${i + 5}`;
-      terrains[i + 5] = terrain;
-      scene.add(terrain);
+    let grid: any[] = [];
+    const gridSize = 3;
+    let playerGridPos = { x: 1, y: 1 }; // Player starts at the center of the grid
+
+// Initialize the grid
+    for (let x = 0; x < gridSize; x++) {
+      grid[x] = [];
+      for (let y = 0; y < gridSize; y++) {
+        let terrain = generatePlane({
+          x: (x - playerGridPos.x) * size,
+          y: 0,
+          z: (y - playerGridPos.y) * size,
+        });
+        terrain.name = `terrain_${x}_${y}`;
+        // @ts-ignore
+        grid[x][y] = terrain;
+        scene.add(terrain);
+      }
     }
 
     const animate = () => {
@@ -268,52 +304,10 @@ function Home() {
       if (keys.shift) {
         position.add(up.multiplyScalar(-speed));
       }
-    
-      const playerPosition = {
-        x: position.x,
-        y: position.y,
-        z: position.z,
-      };
+
       const clock = new THREE.Clock();
-      const distanceTraveled = 100;
 
-      if (camera.position.z - terrains[currentTerrainIndex].position.z > 300) {
-        // Shift to the next terrain
-        console.log("shift to next terrain");
-        console.log("currentTerrainIndex", currentTerrainIndex)
-        currentTerrainIndex = (currentTerrainIndex + 1) % terrains.length;
-        // Remove the farthest terrain behind
-        let farthestTerrainBehind = terrains[0];
-        scene.remove(farthestTerrainBehind);
-        terrains.shift();
 
-        // Create a new terrain in the front
-        let newTerrainZ = terrains[terrains.length - 1].position.z + 300;
-        let newTerrain = generatePlane({ x: 0, y: 0, z: newTerrainZ });
-        newTerrain.name = `terrain${terrains.length}`;
-        terrains.push(newTerrain);
-        scene.add(newTerrain);
-      }
-
-      // When the player returns to the previous terrain
-      else if (camera.position.z < terrains[currentTerrainIndex].position.z) {
-        console.log(terrains)
-        console.log("shift to previous terrain");
-        console.log("currentTerrainIndex", currentTerrainIndex)
-        // Shift to the previous terrain
-        currentTerrainIndex = (currentTerrainIndex - 1 + terrains.length) % terrains.length;
-        // Remove the farthest terrain in front
-        let farthestTerrainInFront = terrains[terrains.length - 1];
-        scene.remove(farthestTerrainInFront);
-        terrains.pop();
-
-        // Create a new terrain in the back
-        let newTerrainZ = terrains[0].position.z - 300;
-        let newTerrain = generatePlane({ x: 0, y: 0, z: newTerrainZ });
-        newTerrain.name = `terrain${terrains.length}`;
-        terrains.unshift(newTerrain);
-        scene.add(newTerrain);
-      }
 
       sky.material.uniforms['turbidity'].value = effectController.turbidity;
       sky.material.uniforms['rayleigh'].value = effectController.rayleigh;
@@ -325,12 +319,73 @@ function Home() {
       uniforms['rayleigh'].value = effectController.rayleigh;
       uniforms['mieCoefficient'].value = effectController.mieCoefficient;
       uniforms['mieDirectionalG'].value = effectController.mieDirectionalG;
-      const distance = 400000;
       uniforms['up'].value.copy( camera.up ).normalize();
       uniforms['sunPosition'].value.copy( sun );
       effectController.azimuth += 2 * clock.getDelta();
       if ( effectController.azimuth > 1 ) effectController.azimuth = 0;
       updateSun();
+
+      // Track the position in grid units, not world units
+      let gridPositionX = Math.floor(position.x / size);
+      let gridPositionY = Math.floor(position.z / size); // Assuming +Z is north
+
+
+      // If the player has moved grid cell...
+      let bufferZone = 0.4; // 40% of the grid size as buffer; adjust as needed
+
+// If the player has moved to the buffer zone...
+      if (Math.abs(gridPositionX - playerGridPos.x) > bufferZone || Math.abs(gridPositionY - playerGridPos.y) > bufferZone) {
+        console.log('Player moved grid cell');
+        console.log(gridPositionX, gridPositionY);
+        console.log(playerGridPos.x, playerGridPos.y);
+
+        // Calculate the delta movement
+        let deltaX = gridPositionX - playerGridPos.x;
+        let deltaY = gridPositionY - playerGridPos.y;
+
+        // Update terrain based on new player position
+        for (let x = 0; x < gridSize; x++) {
+          for (let y = 0; y < gridSize; y++) {
+            // Calculate the new grid position for this terrain piece
+            let newX = x - Math.floor(gridSize / 2) + gridPositionX;
+            let newY = y - Math.floor(gridSize / 2) + gridPositionY;
+
+            let terrainName = `terrain_${newX}_${newY}`;
+            let terrain = scene.getObjectByName(terrainName);
+
+            if (!terrain) {
+              // Create a new terrain piece
+              terrain = generatePlane({
+                x: newX * size,
+                y: 0,
+                z: newY * size,
+              });
+              terrain.name = terrainName;
+              scene.add(terrain);
+            }
+          }
+        }
+
+        let minX = gridPositionX - Math.floor(gridSize);
+        let maxX = gridPositionX + Math.floor(gridSize);
+        let minY = gridPositionY - Math.floor(gridSize);
+        let maxY = gridPositionY + Math.floor(gridSize);
+
+        // Iterate over all terrain pieces and remove the distant ones
+        scene.children.forEach((child) => {
+          if (child.name.startsWith("terrain_")) {
+            let [_, childX, childY] = child.name.split("_").map(Number);
+            if (childX < minX || childX > maxX || childY < minY || childY > maxY) {
+              scene.remove(child);
+              // If you have additional cleanup to do, like disposing of geometries or materials, do it here
+            }
+          }
+        });
+
+        // Update the player's grid position
+        playerGridPos.x = gridPositionX;
+        playerGridPos.y = gridPositionY;
+      }
       renderer.render(scene, camera);
     };
     
@@ -350,7 +405,6 @@ function Home() {
     return () => {
       renderer.dispose();
       scene.remove(cube);
-      scene.remove(terrain);
       window.removeEventListener("resize", handleResize);
       window.removeEventListener("mousemove", handleMouseMove);
       window.removeEventListener("keydown", handleKeyDown);
