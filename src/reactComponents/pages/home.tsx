@@ -282,9 +282,11 @@ function Home() {
     
       // Determine the direction of the turn (left or right)
       let turnDirection = 0; // 0 for no turn, 1 for left, -1 for right
+
+      console.log(currentZRotation);
     
       // Check if the airplane's Z-axis rotation is non-zero
-      if (Math.abs(currentZRotation) > 0) {
+      if (Math.abs(currentZRotation) > Math.abs(.1)) {
         // Determine the turn direction based on the sign of rotation.z
         turnDirection = Math.sign(currentZRotation);
       }
