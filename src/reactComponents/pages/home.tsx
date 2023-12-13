@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from "react";
 import * as THREE from "three";
 import "../../styling/App.css";
+// @ts-ignore
 import * as dat from "dat.gui";
 import {Sky} from "three/examples/jsm/objects/Sky";
 import {SimplexNoise} from "three/examples/jsm/math/SimplexNoise";
@@ -26,6 +27,15 @@ function Home() {
         return this.seed / m;
       }
     }
+
+    const makeObject = (texture: THREE.Texture, position: THREE.Vector3, size: number) => {
+      const tree = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture }));
+      tree.scale.set(size, size, size);
+      tree.position.copy(position);
+
+      return tree;
+    };
+
 
 // Instantiate your custom random number generator with a seed of 0
     const seededRandom = new SeededRandom(0);
@@ -57,6 +67,7 @@ function Home() {
     );
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
+    // @ts-ignore
     threeContainer.current.appendChild(renderer.domElement);
 
     const effectController = {
@@ -109,6 +120,12 @@ function Home() {
 
     const loader = new THREE.TextureLoader();
     const texture = loader.load("/static/texture.jpg");
+    let tree1 = loader.load("src/assets/tree1.png");
+    let tree2 = loader.load("src/assets/tree2.png");
+    let rock1 = loader.load("src/assets/rock1.png");
+    let rock2 = loader.load("src/assets/rock2.png");
+    let rock3 = loader.load("src/assets/rock3.png");
+
 
     const pointLight = new THREE.PointLight(0xffffff, 100);
     pointLight.position.x = 2;
@@ -129,7 +146,7 @@ function Home() {
     // scene.fog = new THREE.Fog(0xffffff, 200000, 500000);
     let size = 30000; // size of your terrain
     let quality = 1; // noise quality
-    let maxHeight = 5000; // maximum height of a terrain feature
+    let maxHeight = 500; // maximum height of a terrain feature
 
     const generatePlane = (position: { x: any; y: number; z: any; }) => {
 
@@ -143,13 +160,34 @@ function Home() {
 
         // Get the elevation value from the noise function
         let elevation = (
-            simplex.noise(x * quality * 2, z * quality * 2) * 0.5 +
-            simplex.noise(x * quality * 4, z * quality * 4) * 0.25 +
-            simplex.noise(x * quality * 8, z * quality * 8) * 0.125
+            simplex.noise(x * quality * 2, z * quality * 2) * 1.2 +
+            simplex.noise(x * quality * 4, z * quality * 4) * 0.4 +
+            simplex.noise(x * quality * 8, z * quality * 8) * 0.2 +
+            simplex.noise(x * quality * 16, z * quality * 16) * 0.14 +
+            simplex.noise(x * quality * 32, z * quality * 32) * 0.06
         );
 
         // Adjust y position based on noise height
         vertices[i + 2] = elevation * maxHeight;
+
+        let itemX = vertices[i];
+        let itemY = vertices[i+1];
+        let itemZ = vertices[i+2];
+
+        // const noiseValue = simplex.noise(itemX, itemY);
+        // if (noiseValue > 0.95) { // Adjust this threshold for tree density.
+        //   const position = new THREE.Vector3(itemX, itemZ + 7, itemY);
+        //   const treeType = Math.random() > 0.5 ? tree1 : tree2;
+        //   const tree = makeObject(treeType, position, 20);
+        //   scene.add(tree);
+        //   // } else if (noiseValue > 0.78) { // Adjust this threshold for rock density.
+        //   //   // const position = new THREE.Vector3(x, z+2, y);
+        //   //   const rockTypeOptions = [rock1, rock2, rock3];
+        //   //   const rockType = rockTypeOptions[Math.floor(Math.random() * rockTypeOptions.length)];
+        //   //   const rock = makeObject(rockType, position, 10);
+        //   //   scene.add(rock);
+        //   // }
+        // }
       }
 
       // Notify Three.js that the positions have changed.
@@ -267,7 +305,8 @@ function Home() {
         scene.add(terrain);
       }
     }
-
+    const clock= new THREE.Clock();
+    clock.start();
     const animate = () => {
       requestAnimationFrame(animate);
       cube.rotation.x += 0.01;
@@ -305,10 +344,6 @@ function Home() {
         position.add(up.multiplyScalar(-speed));
       }
 
-      const clock = new THREE.Clock();
-
-
-
       sky.material.uniforms['turbidity'].value = effectController.turbidity;
       sky.material.uniforms['rayleigh'].value = effectController.rayleigh;
       sky.material.uniforms['mieCoefficient'].value = effectController.mieCoefficient;
@@ -321,8 +356,8 @@ function Home() {
       uniforms['mieDirectionalG'].value = effectController.mieDirectionalG;
       uniforms['up'].value.copy( camera.up ).normalize();
       uniforms['sunPosition'].value.copy( sun );
-      effectController.azimuth += 2 * clock.getDelta();
-      if ( effectController.azimuth > 1 ) effectController.azimuth = 0;
+      effectController.azimuth += 0.004 * clock.getDelta();
+      if ( effectController.azimuth > 1 ) effectController.azimuth = 0
       updateSun();
 
       // Track the position in grid units, not world units
@@ -391,9 +426,11 @@ function Home() {
     
 
     const lockPointer = () => {
+      // @ts-ignore
       threeContainer.current.requestPointerLock();
     };
 
+    // @ts-ignore
     threeContainer.current.addEventListener("click", lockPointer);
 
     animate();
