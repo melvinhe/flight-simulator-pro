@@ -6,6 +6,7 @@ import {SimplexNoise} from "three/examples/jsm/math/SimplexNoise";
 import {OrbitControls} from "three/examples/jsm/controls/OrbitControls";
 import GUI from "three/examples/jsm/libs/lil-gui.module.min";
 import {FBXLoader} from "three/examples/jsm/loaders/FBXLoader";
+import {RGBELoader} from "three/examples/jsm/loaders/RGBELoader";
 
 
 function Home() {
@@ -503,21 +504,14 @@ function Home() {
             camera.updateProjectionMatrix();
         };
 
-        const handleMouseMove = (event: { movementX: any; movementY: any; }) => {
-            const {movementX, movementY} = event;
+        const pmremGenerator = new THREE.PMREMGenerator(renderer);
 
-            // Adjust the sensitivity to control the rotation speed
-            const sensitivity = 0.002;
-
-            camera.rotation.y -= movementX * sensitivity;
-            camera.rotation.z -= movementY * sensitivity;
-
-            // Clamp vertical rotation to avoid camera flipping
-            camera.rotation.z = Math.max(
-                -Math.PI / 2,
-                Math.min(Math.PI / 2, camera.rotation.x)
-            );
-        };
+        const hdriLoader = new RGBELoader();
+        hdriLoader.load("src/assets/env.hdr", function (texture) {
+            const envMap = pmremGenerator.fromEquirectangular(texture).texture;
+            texture.dispose();
+            scene.environment = envMap;
+        });
 
 
         let grid: any[] = [];
