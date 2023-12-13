@@ -266,13 +266,13 @@ function Home() {
       if (!airplaneModel.current) return;
 
       // Interpolate pitch and Barrel
-currentPitch += (targetPitch - currentPitch) * interpolationFactor;
-currentBarrel += (targetBarel - currentBarrel) * interpolationFactor;
+      currentPitch += (targetPitch - currentPitch) * interpolationFactor;
+      currentBarrel += (targetBarel - currentBarrel) * interpolationFactor;
 
-if (airplaneModel.current) {
-  airplaneModel.current.rotateX(-currentPitch * pitchRate); 
-  airplaneModel.current.rotateZ(-currentBarrel * barrelRate); 
-}
+      if (airplaneModel.current) {
+        airplaneModel.current.rotateX(-currentPitch * pitchRate);
+        airplaneModel.current.rotateZ(-currentBarrel * barrelRate);
+      }
 
       const baseTurnRate = 0.001;
       const speedStep = 0.04;
@@ -418,29 +418,29 @@ if (airplaneModel.current) {
     }
 
     function updatePlaneRotation(event: MouseEvent) {
-        if (!isMouseDown.current || !airplaneModel.current) return;
-  
-        const movementX = event.movementX || 0;
-        const movementY = event.movementY || 0;
-  
-        // Calculate yaw and pitch rotations in world space
-        const yawRotation = new THREE.Quaternion().setFromEuler(
-          new THREE.Euler(0, -movementX * 0.002, 0, "YXZ")
-        );
-        const pitchRotation = new THREE.Quaternion().setFromEuler(
-          new THREE.Euler(movementY * 0.003, 0, 0, "YXZ")
-        );
-  
-        // Combine the rotations
-        const combinedRotation = yawRotation.multiply(pitchRotation);
-  
-        // Transform the combined rotation to the airplane's local space
-        const airplaneRotation =
-          airplaneModel.current.quaternion.multiply(combinedRotation);
-  
-        // Apply the updated rotation to the airplane model
-        airplaneModel.current.quaternion.copy(airplaneRotation);
-      }
+      if (!isMouseDown.current || !airplaneModel.current) return;
+
+      const movementX = event.movementX || 0;
+      const movementY = event.movementY || 0;
+
+      // Calculate yaw and pitch rotations in world space
+      const yawRotation = new THREE.Quaternion().setFromEuler(
+        new THREE.Euler(0, -movementX * 0.002, 0, "YXZ")
+      );
+      const pitchRotation = new THREE.Quaternion().setFromEuler(
+        new THREE.Euler(movementY * 0.003, 0, 0, "YXZ")
+      );
+
+      // Combine the rotations
+      const combinedRotation = yawRotation.multiply(pitchRotation);
+
+      // Transform the combined rotation to the airplane's local space
+      const airplaneRotation =
+        airplaneModel.current.quaternion.multiply(combinedRotation);
+
+      // Apply the updated rotation to the airplane model
+      airplaneModel.current.quaternion.copy(airplaneRotation);
+    }
     const effectController = {
       turbidity: 10,
       rayleigh: 3,
@@ -542,8 +542,9 @@ if (airplaneModel.current) {
       newPlane.scale.set(0.1, 0.1, 0.1);
       newPlane.rotation.x = -Math.PI / 2;
       newPlane.position.y = -8;
-      newPlane.position.x = position.x;
-      newPlane.position.z = position.z;
+      newPlane.position.x = position.x * 0.1;
+      newPlane.position.z = position.z * 0.1;
+
       return newPlane;
     };
 
@@ -727,20 +728,20 @@ if (airplaneModel.current) {
     }
 
     function handleKeyUp(event: KeyboardEvent) {
-        switch (event.key) {
-          case "w":
-          case "s":
-            targetPitch = 0; // Reset target pitch
-            break;
-          case "a":
-          case "d":
-            targetBarel = 0; // Reset target yaw
-            break;
-          // ... other cases ...
-          default:
-            break;
-        }
+      switch (event.key) {
+        case "w":
+        case "s":
+          targetPitch = 0; // Reset target pitch
+          break;
+        case "a":
+        case "d":
+          targetBarel = 0; // Reset target yaw
+          break;
+        // ... other cases ...
+        default:
+          break;
       }
+    }
 
     // Mouse down event
     function onMouseDown() {
