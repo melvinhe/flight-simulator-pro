@@ -548,6 +548,32 @@ function Home() {
       return newPlane;
     };
 
+    function deformTerrain(point: THREE.Vector3, plane: THREE.Mesh){
+      const planeGeometry = plane.geometry;
+      const vertices = planeGeometry.attributes.position.array;
+      const radius = 30;
+      const intensity = 40;
+      // console.log(collision);
+      for (let i = 0; i < vertices.length; i += 3) {
+          const vertex = new THREE.Vector3(vertices[i], vertices[i + 1], vertices[i + 2]);
+          // console.log("hi");
+          // console.log("vertex before: ", vertex.clone().toArray());
+          let world = vertex.applyMatrix4(plane.matrixWorld);
+          let worldPoint = new THREE.Vector3(...world.clone().toArray());
+          // console.log("vertex after: ", worldPoint);
+          const distance = point.distanceTo(worldPoint);
+          // console.log(distance);
+
+          if (distance < radius){
+              const deformAmount = intensity * (1 - distance / radius);
+              vertices[i + 2] -= deformAmount; // adjust the z-coord
+              // console.log("deform at: ", worldPoint);
+              // console.log("intersection at: ", point);
+          }
+      }
+      planeGeometry.attributes.position.needsUpdate = true;
+  }
+
     const handleResize = () => {
       const width = window.innerWidth;
       const height = window.innerHeight;
@@ -639,7 +665,6 @@ function Home() {
         // Calculate the delta movement
         let deltaX = gridPositionX - playerGridPos.x;
         let deltaY = gridPositionY - playerGridPos.y;
-
         // Update terrain based on new player position
         for (let x = 0; x < gridSize; x++) {
           for (let y = 0; y < gridSize; y++) {
@@ -648,7 +673,7 @@ function Home() {
             let newY = y - Math.floor(gridSize / 2) + gridPositionY;
 
             let terrainName = `terrain_${newX}_${newY}`;
-            let terrain = scene.getObjectByName(terrainName);
+            let terrain = scene.getObjectByName(terrainName) as THREE.Mesh | undefined;
 
             if (!terrain) {
               // Create a new terrain piece
@@ -659,6 +684,7 @@ function Home() {
               });
               terrain.name = terrainName;
               scene.add(terrain);
+              // collisionTerrain = terrain;
             }
           }
         }
@@ -667,6 +693,28 @@ function Home() {
         let maxX = gridPositionX + Math.floor(gridSize);
         let minY = gridPositionY - Math.floor(gridSize);
         let maxY = gridPositionY + Math.floor(gridSize);
+
+                // scene.traverse((child) =>  {
+        //   console.log("loop");
+        //   // === intersection logic ===
+        //   let collisionTerrain = child as THREE.Mesh;
+        //   const raycaster = new THREE.Raycaster();
+        //   const rayDir = new THREE.Vector3();
+    
+        //   camera.getWorldDirection(rayDir);
+        //   raycaster.set(camera.position, rayDir);
+        //   const intersects = raycaster.intersectObject(collisionTerrain);
+        //   // if intersects:
+        //   if (intersects.length > 0 && intersects[0].distance < 100){ 
+        //       console.log("intersect with terrain, point: ", intersects);
+        //       const point = intersects[0].point;
+        //       deformTerrain(point, collisionTerrain);
+        //   }
+          
+        //   // ==========================
+
+
+        // });
 
         // Iterate over all terrain pieces and remove the distant ones
         scene.children.forEach((child) => {
@@ -701,6 +749,30 @@ function Home() {
       if (orbitControlsRef.current && orbitControlsRef.current.enabled) {
         orbitControlsRef.current.update();
       }
+
+      // Raycaster & collision logic
+      let collisionTerrain = grid[1][1];
+
+      // === intersection logic ===
+      // let collisionTerrain = child as THREE.Mesh;
+      const raycaster = new THREE.Raycaster();
+      const rayDir = new THREE.Vector3();
+      
+      camera.getWorldDirection(rayDir);
+      const result = new THREE.Vector3();
+      result.addVectors(rayDir, cameraOffset);
+      raycaster.set(camera.position, rayDir);
+      const intersects = raycaster.intersectObject(collisionTerrain);
+      // if intersects:
+      if (intersects.length > 0 && intersects[0].distance < 100){ 
+          // console.log("intersect with terrain, point: ", intersects);
+          const point = intersects[0].point;
+          deformTerrain(point, collisionTerrain);
+      }
+      
+      // ==========================
+
+
       renderer.render(scene, camera);
     };
 
