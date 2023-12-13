@@ -12,7 +12,7 @@ import { FBXLoader } from "three/examples/jsm/loaders/FBXLoader";
 import { RGBELoader } from "three/examples/jsm/loaders/RGBELoader";
 
 function Home() {
-  const threeContainer = useRef(null);
+  const threeContainer = useRef<HTMLDivElement>(null);
   const isMouseDown = useRef(false);
 
   //plane
@@ -34,8 +34,6 @@ function Home() {
   const defaultFOV = 75; // Default field of view
   const maxPower = 5; // Maximum power when holding 'W'
   let power = 0; // Current power
-  const powerIncreaseRate = 1; // Rate at which power increases per second
-  const powerDecreaseRate = 0.5; // Rate at which power decreases per second
   const powerToFOV = (p: number) =>
     Math.min(defaultFOV + (maxFOV - defaultFOV) * (p / maxPower), maxFOV);
 
@@ -43,9 +41,10 @@ function Home() {
 
   const orbitControlsRef = useRef<OrbitControls | null>(null); // Ref for OrbitControls
 
-  let isFirstPersonView = false;
 
   const cameraLookAtTarget = new THREE.Object3D();
+
+  const turnRate = 0.05; // Rate of turn
 
   interface Settings {
     speed: number;
@@ -55,11 +54,8 @@ function Home() {
     cameraFOV: number;
   }
 
-  const toggleFirstPersonView = () => {
-    isFirstPersonView = !isFirstPersonView;
-  };
-
   useEffect(() => {
+    if (!threeContainer.current) return;
     const clock = new THREE.Clock();
     let keys = {
       up: false,
@@ -80,7 +76,6 @@ function Home() {
       cameraFOV: 75,
     };
 
-    // Add GUI controls
     // Add GUI controls
     gui.add(settings, "speed", 0, 10).onChange((value: number) => {
       speed = value;
@@ -269,21 +264,49 @@ function Home() {
     ground.receiveShadow = true;
     scene.add(ground);
 
-    // handles plane pitch on low speed
-
-    const tippingThreshold = 5; // Speed threshold for starting to tip down
-    const maxPitchAngle = Math.PI / 6; // Maximum downward pitch angle
 
     const updatePlaneMovement = () => {
       if (!airplaneModel.current) return;
-
+    
+      // Define the base turn rate and speed step
+      const baseTurnRate = 0.001;
+      const speedStep = 0.01;
+      const maxTurnRate = Math.PI / 2; // Maximum turn rate in radians (90 degrees)
+    
+      // Calculate the turn rate based on the current rotation around the Z-axis
+      const currentZRotation = airplaneModel.current.rotation.z;
+      const turnRate = baseTurnRate * (1 + Math.abs(currentZRotation));
+    
+      // Limit the turn rate to the maximum value
+      const limitedTurnRate = Math.min(turnRate, maxTurnRate);
+    
+      // Determine the direction of the turn (left or right)
+      let turnDirection = 0; // 0 for no turn, 1 for left, -1 for right
+    
+      // Check if the airplane's Z-axis rotation is non-zero
+      if (Math.abs(currentZRotation) > 0) {
+        // Determine the turn direction based on the sign of rotation.z
+        turnDirection = Math.sign(currentZRotation);
+      }
+    
+      // Adjust the airplane's rotation based on the turn direction and limited turn rate
+      airplaneModel.current.rotation.y -= limitedTurnRate * turnDirection;
+    
+      // Calculate the forward vector based on the current rotation
       const forward = new THREE.Vector3(0, 0, 1).applyQuaternion(
         airplaneModel.current.quaternion
       );
+    
+      // Move the airplane forward in the direction of the forward vector
       airplaneModel.current.position.addScaledVector(
         forward,
         speed * speedStep
       );
+    
+    
+
+
+
 
       // Ensure the cameraOffset is correctly positioned relative to the airplane model
       const targetPosition = airplaneModel.current.position
@@ -309,41 +332,6 @@ function Home() {
 
       camera.lookAt(airplaneModel.current.position);
 
-      //fire
-
-      const createFireEffect = () => {
-        const particles = 500;
-        const geometry = new THREE.BufferGeometry();
-        const positions = [];
-        const colors = [];
-
-        for (let i = 0; i < particles; i++) {
-          // positions
-          positions.push((Math.random() - 0.5) * 2);
-          positions.push((Math.random() - 0.5) * 2);
-          positions.push((Math.random() - 0.5) * 2);
-
-          // colors
-          colors.push(1, 0.4, 0); // fire-like color
-        }
-
-        geometry.setAttribute(
-          "position",
-          new THREE.Float32BufferAttribute(positions, 3)
-        );
-        geometry.setAttribute(
-          "color",
-          new THREE.Float32BufferAttribute(colors, 3)
-        );
-
-        const material = new THREE.PointsMaterial({
-          size: 0.04,
-          vertexColors: true,
-        });
-        const particleSystem = new THREE.Points(geometry, material);
-
-        return particleSystem;
-      };
 
       //orbit test
 
@@ -365,77 +353,84 @@ function Home() {
 
       document.addEventListener("keydown", handleOrbitKeyPress);
     };
-    // Animation loop
+
+    const updateCameraView = () => {
+      if (!airplaneModel.current) return;
+
+        const targetPosition = cameraOffset.clone();
+        targetPosition.applyMatrix4(airplaneModel.current.matrixWorld);
+        camera.position.lerp(targetPosition, lerpFactor);
+        camera.lookAt(airplaneModel.current.position);
+      }
+    
+    
+    const updatePropellerRotation = (delta: number) => {
+      if (!propellerRef.current) return;
+    
+      const propellerRotationSpeed = speed * 5;
+      propellerRef.current.rotation.z += propellerRotationSpeed * delta;
+    };
+    
+    const resetAirplaneRotation = () => {
+      if (!airplaneModel.current || isMouseDown.current || Date.now() - lastInteractionTime <= resetDelay) return;
+    
+      airplaneModel.current.rotation.x = THREE.MathUtils.lerp(airplaneModel.current.rotation.x, 0, resetSpeed);
+      airplaneModel.current.rotation.z = THREE.MathUtils.lerp(airplaneModel.current.rotation.z, 0, resetSpeed);
+    };
+
+    function updateCameraFOV() {
+      const targetFOV = powerToFOV(speed);
+      camera.fov = THREE.MathUtils.lerp(camera.fov, targetFOV, lerpFactor);
+      camera.updateProjectionMatrix();
+    }
+
+    function updatePlaneRotation(event: MouseEvent) {
+      if (!isMouseDown.current || !airplaneModel.current) return;
+    
+      const movementX = event.movementX || 0;
+      const movementY = event.movementY || 0;
+    
+      const airplaneRotation = airplaneModel.current.rotation.clone(); // Make a copy of the current rotation
+    
+      // Calculate rotations relative to the airplane's local coordinate system
+      const yawRotation = new THREE.Euler(0, -movementX * 0.002, 0);
+      const pitchRotation = new THREE.Euler(movementY * 0.003, 0, 0);
+    
+      // Apply yaw and pitch rotations to the airplane's current rotation
+      airplaneRotation.y += yawRotation.y;
+      airplaneRotation.x = Math.max(-Math.PI / 4, Math.min(Math.PI / 4, airplaneRotation.x + pitchRotation.x));
+    
+      // Barrel roll: Rolls the airplane model when moving horizontally
+      if (movementX !== 0) {
+        airplaneRotation.z += movementX * 0.001;
+      }
+    
+      // Apply the updated rotation to the airplane model
+      airplaneModel.current.rotation.copy(airplaneRotation);
+    }
+    
+    
+    
     const animate = () => {
       requestAnimationFrame(animate);
+      const delta = clock.getDelta();
+    
       updatePlaneMovement();
-      if (airplaneModel.current) {
-        const firstPersonCameraPosition = new THREE.Vector3(0, 0.3, 2.65);
-        if (isFirstPersonView) {
-          // Update camera position and orientation in first-person view
-          const fpPosition = airplaneModel.current.localToWorld(
-            firstPersonCameraPosition.clone()
-          );
-          camera.position.copy(fpPosition);
-
-          // Orient the camera to look at the invisible target object
-          const targetWorldPosition = cameraLookAtTarget.getWorldPosition(
-            new THREE.Vector3()
-          );
-          camera.lookAt(targetWorldPosition);
-        } else {
-          // If not in first-person view, handle camera position normally
-          const targetPosition = cameraOffset.clone();
-          targetPosition.applyMatrix4(airplaneModel.current.matrixWorld);
-          camera.position.lerp(targetPosition, lerpFactor);
-          camera.lookAt(airplaneModel.current.position);
-        }
-      }
-
-      //aniamte
+      updateCameraView();
+      updatePropellerRotation(delta);
+      resetAirplaneRotation();
+    
+      power = Math.max(0, Math.min(power, maxPower));
+      camera.updateProjectionMatrix();
+      updateCameraFOV();
+    
       if (orbitControlsRef.current && orbitControlsRef.current.enabled) {
         orbitControlsRef.current.update();
       }
-
-      if (
-        !isMouseDown.current &&
-        Date.now() - lastInteractionTime > resetDelay &&
-        airplaneModel.current
-      ) {
-        // Interpolate towards the default rotation
-        airplaneModel.current.rotation.x = THREE.MathUtils.lerp(
-          airplaneModel.current.rotation.x,
-          0,
-          resetSpeed
-        );
-        airplaneModel.current.rotation.y = THREE.MathUtils.lerp(
-          airplaneModel.current.rotation.y,
-          0,
-          resetSpeed
-        );
-        airplaneModel.current.rotation.z = THREE.MathUtils.lerp(
-          airplaneModel.current.rotation.z,
-          0,
-          resetSpeed
-        );
-      }
-
-      const delta = clock.getDelta(); // Assuming you have a THREE.Clock instance
-
-      if (propellerRef.current) {
-        // Propeller rotation speed directly based on power
-        // Remove the base speed (0.5) to ensure propeller stops when power is 0
-        const propellerRotationSpeed = speed * 5; // Adjust multiplier as needed
-        propellerRef.current.rotation.z += propellerRotationSpeed * delta;
-      }
-
-      // Clamp power to valid range
-      power = Math.max(0, Math.min(power, maxPower));
-
-      camera.updateProjectionMatrix();
-      updateCameraFOV();
+    
       renderer.render(scene, camera);
     };
+    
 
     function handleResize() {
       const width = window.innerWidth;
@@ -447,11 +442,7 @@ function Home() {
       // controls.update();
     }
 
-    function updateCameraFOV() {
-      const targetFOV = powerToFOV(speed);
-      camera.fov = THREE.MathUtils.lerp(camera.fov, targetFOV, lerpFactor);
-      camera.updateProjectionMatrix();
-    }
+
 
     function handleKeyDown(event: KeyboardEvent) {
       switch (event.key) {
@@ -461,38 +452,12 @@ function Home() {
         case "ArrowDown":
           speed = Math.max(speed - 1, 1);
           break;
-        case "f":
-          toggleFirstPersonView();
-          break;
       }
     }
 
-    function handleKeyUp(event: { keyCode: any }) {
-      // switch (event.keyCode) {
-      //   case 87: // 'W' key
-      //     isWPressed = false;
-      //     break;
-      // }
-    }
 
     // @ts-ignore
-    function updateCameraRotation(event: MouseEvent) {
-      if (!isMouseDown.current || !airplaneModel.current) return;
-
-      const movementX = event.movementX || 0;
-      const movementY = event.movementY || 0;
-
-      // Yaw and pitch adjustment
-      airplaneModel.current.rotation.y -= movementX * 0.002;
-      let newPitch = airplaneModel.current.rotation.x + movementY * 0.003;
-      newPitch = Math.max(-Math.PI / 4, Math.min(Math.PI / 4, newPitch));
-      airplaneModel.current.rotation.x = newPitch;
-
-      // Barrel roll: Rolls the airplane model when moving horizontally
-      if (movementX !== 0) {
-        airplaneModel.current.rotation.z -= movementX * 0.003;
-      }
-    }
+  
 
     // Mouse down event
     function onMouseDown() {
@@ -510,7 +475,7 @@ function Home() {
     });
 
     // Listen for mouse movement events when pointer lock is active
-    document.addEventListener("mousemove", updateCameraRotation, false);
+    document.addEventListener("mousemove", updatePlaneRotation, false);
 
     // Listen for mouse down and up events
     document.addEventListener("mousedown", onMouseDown, false);
@@ -547,17 +512,36 @@ function Home() {
 
     window.addEventListener("resize", handleResize);
     window.addEventListener("keydown", handleKeyDown);
-    window.addEventListener("keyup", handleKeyUp);
 
     // Cleanup on unmount
     return () => {
+      scene.traverse((object: THREE.Object3D) => {
+        if (object instanceof THREE.Mesh) {
+          if (object.geometry) object.geometry.dispose();
+          if (object.material instanceof THREE.Material) {
+            object.material.dispose();
+          } else if (Array.isArray(object.material)) {
+            object.material.forEach(material => material.dispose());
+          }
+        }
+      });
+
       renderer.dispose();
-      //scene.remove(cube);
-      //scene.remove(plane);
+      gui.destroy();
+
+      if (orbitControlsRef.current) {
+        orbitControlsRef.current.dispose();
+      }
+
+      // Ensure the renderer's DOM element is correctly removed
+      if (threeContainer.current && renderer.domElement.parentNode === threeContainer.current) {
+        threeContainer.current.removeChild(renderer.domElement);
+      }
+
       window.removeEventListener("resize", handleResize);
       window.removeEventListener("keydown", handleKeyDown);
-      window.addEventListener("keyup", handleKeyUp);
     };
+
   }, []);
 
   return (
