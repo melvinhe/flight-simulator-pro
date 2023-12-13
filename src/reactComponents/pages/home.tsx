@@ -249,8 +249,8 @@ function Home() {
     scene.add(crashParticles);
     const animate = () => {
       if (crash){
-        speed = 0.09;
-        camera.translateZ(speed);   
+        //speed = 0.09;
+        //camera.translateZ(speed);   
         // Create crash particles
         const crashPosition = camera.position.clone();
         createParticles(crashPosition, crashParticles); 
@@ -358,38 +358,75 @@ function Home() {
     function createParticles(position, particleSystem) {
       const particleCount = 10;
       const particleGeometry = new THREE.BufferGeometry();
-      const smokeTexture = new THREE.TextureLoader().load("/static/smoke.png");
       const fireTexture = new THREE.TextureLoader().load("/static/fire.png");
+      const wastedPNG = new THREE.TextureLoader().load("/static/wasted.png");
 
       const particleMaterial = new THREE.PointsMaterial({
         size: 0.1,
-        map: fireTexture, // Use smoke texture for crashParticles
+        map: fireTexture,
         transparent: true,
+        opacity: 0.8,
         blending: THREE.AdditiveBlending,
         depthTest: false,
       });
 
       const positions = new Float32Array(particleCount * 3);
-      const particleSpeed = 0.2;
-      for (let i = 0; i < particleCount * 3; i += 3) {
-        positions[i] = position.x + (Math.random() - 0.5) * particleSpeed;
-        positions[i + 1] = position.y + (Math.random() - 0.5) * particleSpeed;
-        positions[i + 2] = position.z + (Math.random() - 0.5) * particleSpeed;
-      }
+      const particleSpeed = 1;
 
-      particleGeometry.setAttribute(
-        "position",
-        new THREE.BufferAttribute(positions, 3)
-      );
+      let canGenerateParticles = true;
+      let particlesTimeout;
 
-      const particles = new THREE.Points(particleGeometry, particleMaterial);
-      particleSystem.add(particles);
+      const generateParticles = () => {
+        if (!canGenerateParticles) return;
 
-      setTimeout(() => {
-        particleSystem.remove(particles);
-      }, 20000);
+        for (let i = 0; i < particleCount * 3; i += 3) {
+          positions[i] = position.x + (Math.random() - 0.5) * particleSpeed;
+          positions[i + 1] = position.y + (Math.random() - 0.5) * particleSpeed;
+          positions[i + 2] = position.z + (Math.random() - 0.5) * particleSpeed;
+        }
+
+        particleGeometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+
+        const particles = new THREE.Points(particleGeometry, particleMaterial);
+        particleSystem.add(particles);
+
+        // Clear timeout if it exists
+        if (particlesTimeout) {
+          clearTimeout(particlesTimeout);
+        }
+
+        // Set a timeout to remove particles after 2 seconds
+        particlesTimeout = setTimeout(() => {
+          particleSystem.remove(particles);
+
+          // Show wastedPNG after particles disappear
+          const wastedMaterial = new THREE.MeshBasicMaterial({
+            map: wastedPNG,
+            transparent: true,
+            opacity: 1, // Adjust opacity as needed
+          });
+
+          const wastedGeometry = new THREE.PlaneGeometry(10, 10);
+          const wastedPlane = new THREE.Mesh(wastedGeometry, wastedMaterial);
+          //wastedPlane.position.set(0, 0, -5); // Adjust position as needed
+          // Set the position in front of the camera
+          const distance = 5; // Adjust the distance from the camera
+          const frontVector = new THREE.Vector3(0, 0, -1);
+          const frontPoint = new THREE.Vector3().copy(camera.position).add(frontVector.multiplyScalar(distance));
+          wastedPlane.position.copy(frontPoint);
+          particleSystem.add(wastedPlane);
+
+          // Set a timeout to remove wastedPNG after 2 seconds
+          setTimeout(() => {
+            particleSystem.remove(wastedPlane);
+            canGenerateParticles = false; // Stop generating particles
+          }, 2000);
+        }, 2000); // Adjust this value to control how long the fire particles appear
+      };
+
+      generateParticles();
     }
-    
+
 
     const lockPointer = () => {
       // @ts-ignore
