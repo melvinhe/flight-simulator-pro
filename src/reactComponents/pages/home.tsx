@@ -96,39 +96,6 @@ function Home() {
       return tree;
     };
 
-    const gui = new GUI();
-    const settings: Settings = {
-      speed: 0,
-      airplaneRotationX: 0,
-      airplaneRotationY: 0,
-      airplaneRotationZ: 0,
-      cameraFOV: 75,
-    };
-
-    // Add GUI controls
-    gui.add(settings, "speed", 0, 10).onChange((value: number) => {
-      speed = value;
-    });
-    gui
-      .add(settings, "airplaneRotationX", -Math.PI, Math.PI)
-      .onChange((value: number) => {
-        if (airplaneModel.current) airplaneModel.current.rotation.x = value;
-      });
-    gui
-      .add(settings, "airplaneRotationY", -Math.PI, Math.PI)
-      .onChange((value: number) => {
-        if (airplaneModel.current) airplaneModel.current.rotation.y = value;
-      });
-    gui
-      .add(settings, "airplaneRotationZ", -Math.PI, Math.PI)
-      .onChange((value: number) => {
-        if (airplaneModel.current) airplaneModel.current.rotation.z = value;
-      });
-    gui.add(settings, "cameraFOV", 45, 90).onChange((value: number) => {
-      camera.fov = value;
-      camera.updateProjectionMatrix();
-    });
-
     const seededRandom = new SeededRandom(0);
 
     const simplex = new SimplexNoise(seededRandom);
