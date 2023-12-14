@@ -582,6 +582,33 @@ const planeColor = new THREE.Color(1,1,1);
       return newPlane;
     };
 
+    function deformTerrain(point: THREE.Vector3, plane: THREE.Mesh){
+      const planeGeometry = plane.geometry;
+      const vertices = planeGeometry.attributes.position.array;
+      const radius = 35;
+      const intensity = 170;
+      // console.log(collision);
+      for (let i = 0; i < vertices.length; i += 3) {
+          const vertex = new THREE.Vector3(vertices[i], vertices[i + 1], vertices[i + 2]);
+          // console.log("hi");
+          // console.log("vertex before: ", vertex.clone().toArray());
+          let world = vertex.applyMatrix4(plane.matrixWorld);
+          let worldPoint = new THREE.Vector3(...world.clone().toArray());
+          // console.log("vertex after: ", worldPoint);
+          const distance = point.distanceTo(worldPoint);
+          // console.log(distance);
+
+          if (distance < radius){
+              const deformAmount = intensity * (1 - distance / radius);
+              vertices[i + 2] -= deformAmount; // adjust the z-coord
+              console.log("deform at: ", worldPoint);
+              // console.log("intersection at: ", point);
+          }
+      }
+      planeGeometry.attributes.position.needsUpdate = true;
+  }
+
+
     const handleResize = () => {
       const width = window.innerWidth;
       const height = window.innerHeight;
@@ -621,7 +648,31 @@ const planeColor = new THREE.Color(1,1,1);
     }
     const clock = new THREE.Clock();
     clock.start();
+    let speed = 0;
+
+    let crash = false;
+    let stop = false;
+    const stopClock = new THREE.Clock();
+    // let animation;
     const animate = () => {
+      // stop mechanism once crashed
+      if (crash){
+        // insert wasted screen logic here
+
+        if (stopClock.getElapsedTime() > 5){
+          stop = true;
+        }
+        speed = 0;
+        camera.translateZ(30);
+        camera.rotateX(10);
+      }
+      if (stop){
+        // put in reset logic here
+
+        console.log("stop");
+        return;
+      }
+
       // Get the elapsed time since the clock started
       const elapsedTime = clock.getElapsedTime();
 
@@ -635,8 +686,7 @@ const planeColor = new THREE.Color(1,1,1);
         lightsMaterial.emissive.multiplyScalar(emissiveIntensity);
       }
 
-      requestAnimationFrame(animate);
-      const speed = 5.1;
+      let animation = requestAnimationFrame(animate);
 
       const position = camera.position;
 
@@ -740,9 +790,31 @@ const planeColor = new THREE.Color(1,1,1);
       if (orbitControlsRef.current && orbitControlsRef.current.enabled) {
         orbitControlsRef.current.update();
       }
+
+      // Raycaster & collision logic
+      // let collisionTerrain = grid[1][1];
+
+      // === intersection logic ===
+      // let collisionTerrain = child as THREE.Mesh;
+      const raycaster = new THREE.Raycaster();
+      const rayDir = new THREE.Vector3();
+      
+      camera.getWorldDirection(rayDir);
+      const result = new THREE.Vector3();
+      // result.addVectors(rayDir, cameraOffset);
+      raycaster.set(camera.position, rayDir);
+      const intersects = raycaster.intersectObject(grid[1][1]);
+      // if intersects:
+      if (intersects.length > 0 && intersects[0].distance < 50){ 
+        // console.log("intersect with terrain, point: ", intersects);
+        const point = intersects[0].point;
+        deformTerrain(point, grid[1][1]);
+        crash = true;
+    }
+      // ==========================
+
       renderer.render(scene, camera);
     };
-
     function handleKeyDown(event: KeyboardEvent) {
       switch (event.key) {
         case "ArrowUp":
