@@ -119,7 +119,7 @@ function Home() {
         threeContainer.current.appendChild(renderer.domElement);
 
         const billLoader = new GLTFLoader();
-        billLoader.load("src/assets/billboard.gltf", (gltf) => {
+        billLoader.load("/assets/billboard.gltf", (gltf) => {
             // Add the loaded model to the scene
             const bill = gltf.scene;
             scene.add(bill);
@@ -131,7 +131,7 @@ function Home() {
         });
 
         const runwayLoader = new GLTFLoader();
-        runwayLoader.load("src/assets/runway.gltf", (gltf) => {
+        runwayLoader.load("/assets/runway.gltf", (gltf) => {
             // Add the loaded model to the scene
             const run = gltf.scene;
             scene.add(run);
@@ -158,7 +158,7 @@ function Home() {
         const modelLoader = new FBXLoader();
 
         // Load plane body
-        modelLoader.load("src/assets/plane-body.fbx", (planeBody) => {
+        modelLoader.load("/assets/plane-body.fbx", (planeBody) => {
             const body = planeBody.getObjectByName("body");
             const windows = planeBody.getObjectByName("windows");
             const wheels = planeBody.getObjectByName("wheels");
@@ -240,7 +240,7 @@ function Home() {
 
             // Load the propeller model
             const secondaryModelLoader = new FBXLoader();
-            secondaryModelLoader.load("src/assets/prop.fbx", (propeller) => {
+            secondaryModelLoader.load("/assets/prop.fbx", (propeller) => {
                 // Set initial propeller transformations
                 propeller.scale.set(1, 1, 1);
                 propeller.rotation.set(0, 0, 0);
@@ -489,11 +489,11 @@ function Home() {
 
         const loader = new THREE.TextureLoader();
         const texture = loader.load("/static/texture.jpg");
-        let tree1 = loader.load("src/assets/tree1.png");
-        let tree2 = loader.load("src/assets/tree2.png");
-        let rock1 = loader.load("src/assets/rock1.png");
-        let rock2 = loader.load("src/assets/rock2.png");
-        let rock3 = loader.load("src/assets/rock3.png");
+        let tree1 = loader.load("/assets/tree1.png");
+        let tree2 = loader.load("/assets/tree2.png");
+        let rock1 = loader.load("/assets/rock1.png");
+        let rock2 = loader.load("/assets/rock2.png");
+        let rock3 = loader.load("/assets/rock3.png");
 
         // scene.fog = new THREE.Fog(0xffffff, 200000, 500000);
         let size = 30000; // size of your terrain
@@ -609,7 +609,7 @@ function Home() {
         const pmremGenerator = new THREE.PMREMGenerator(renderer);
 
         const hdriLoader = new RGBELoader();
-        hdriLoader.load("src/assets/env.hdr", function (texture) {
+        hdriLoader.load("/assets/env.hdr", function (texture) {
             const envMap = pmremGenerator.fromEquirectangular(texture).texture;
             texture.dispose();
             scene.environment = envMap;
