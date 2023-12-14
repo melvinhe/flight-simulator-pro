@@ -640,6 +640,12 @@ function Home() {
     let crash = false;
     let stop = false;
     const stopClock = new THREE.Clock();
+
+    const handleRestartClick = () => {
+      // Restart your program here
+      console.log("Restarting...");
+      location.reload(); // This reloads the entire page; adjust as needed
+    };
     // let animation;
     const animate = () => {
       // stop mechanism once crashed
@@ -659,6 +665,7 @@ function Home() {
 
         if (stopClock.getElapsedTime() > 5) {
           stop = true;
+          document.addEventListener("click", handleRestartClick, { once: true });
         }
         speed = 0;
         camera.translateZ(30);
@@ -666,7 +673,6 @@ function Home() {
       }
       if (stop) {
         // put in reset logic here
-
         console.log("stop");
         return;
       }
