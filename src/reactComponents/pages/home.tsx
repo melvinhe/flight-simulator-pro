@@ -51,7 +51,7 @@ function Home() {
 
   const [isLoading, setIsLoading] = useState(true);
 
-  let [boost, setBoost] = useState(false);
+  let boost = false;
 
   const [prevSpeed, setPrevSpeed] = useState(0);
 
