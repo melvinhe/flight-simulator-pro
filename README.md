@@ -17,8 +17,6 @@ Arrow up / Arrow down - speed increase and decrease
 
 Shift - BOOST
 
-P - Pause
-
 Drag the mouse where you want to go
 
 
