@@ -925,9 +925,12 @@ function Home() {
 
     return (
         <div className="App" role="region">
-            {isLoading && <div className="loading-screen"><h1>Microsoft Flight Simulator is Loading</h1>
-                <CircularProgress size={75}/></div>}{" "}
-            {/* Loading screen */}
+            {isLoading && (
+                <div className="loading-screen" style={{ backgroundImage: "url('/static/flight_sim.jpeg')" }}>
+                    {/*<h1>Flight Simulator Pro is Loading...</h1>*/}
+                    <CircularProgress size={75}/>
+                </div>
+            )}
             <div className={"threeContainer"} ref={threeContainer}/>
         </div>
     );
