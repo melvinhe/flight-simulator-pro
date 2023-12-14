@@ -9,7 +9,6 @@ import { FBXLoader } from "three/examples/jsm/loaders/FBXLoader";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
 import { RGBELoader } from "three/examples/jsm/loaders/RGBELoader";
 
-
 function Home() {
   const threeContainer = useRef(null);
   const isMouseDown = useRef(false);
@@ -52,14 +51,9 @@ function Home() {
 
   const [isLoading, setIsLoading] = useState(true);
 
+  let [boost, setBoost] = useState(false);
 
-  interface Settings {
-    speed: number;
-    airplaneRotationX: number;
-    airplaneRotationY: number;
-    airplaneRotationZ: number;
-    cameraFOV: number;
-  }
+  const [prevSpeed, setPrevSpeed] = useState(0);
 
   class SeededRandom {
     private seed: number;
@@ -78,8 +72,6 @@ function Home() {
   }
 
   useEffect(() => {
-
-
     const onLoadComplete = () => {
       setIsLoading(false); // Set loading to false once everything is loaded
     };
@@ -120,14 +112,11 @@ function Home() {
       300000
     );
 
-    
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.shadowMap.enabled = true;
     renderer.setSize(window.innerWidth, window.innerHeight);
     // @ts-ignore
     threeContainer.current.appendChild(renderer.domElement);
-
-
 
     const billLoader = new GLTFLoader();
     billLoader.load("src/assets/billboard.gltf", (gltf) => {
@@ -135,13 +124,11 @@ function Home() {
       const bill = gltf.scene;
       scene.add(bill);
 
-      bill.position.set(1250, -500, 500); 
-  bill.rotateY(Math.PI);
+      bill.position.set(1250, -500, 500);
+      bill.rotateY(Math.PI);
 
-  bill.scale.set(1, 1, 1);
-    }
-    );
-
+      bill.scale.set(1, 1, 1);
+    });
 
     const runwayLoader = new GLTFLoader();
     runwayLoader.load("src/assets/runway.gltf", (gltf) => {
@@ -150,24 +137,23 @@ function Home() {
       scene.add(run);
 
       // Traverse the model's hierarchy to find the object by name
-  run.traverse((child) => {
-    if (child instanceof THREE.Mesh && child.name === "window") {
-      const material = new THREE.MeshPhysicalMaterial({
-        color: 0xffffff,
-        metalness: .7,
-        roughness: 0,
-        transmission: 1.0,
+      run.traverse((child) => {
+        if (child instanceof THREE.Mesh && child.name === "window") {
+          const material = new THREE.MeshPhysicalMaterial({
+            color: 0xffffff,
+            metalness: 0.7,
+            roughness: 0,
+            transmission: 1.0,
+          });
+          child.material = material;
+        }
       });
-      child.material = material;
-    }
-  });
 
-  run.position.set(1399.3, -508, 30); 
-  run.rotateY(Math.PI);
+      run.position.set(1399.3, -508, 30);
+      run.rotateY(Math.PI);
 
-  run.scale.set(1, 1, 1);
-  
-});
+      run.scale.set(1, 1, 1);
+    });
 
     const modelLoader = new FBXLoader();
 
@@ -246,7 +232,7 @@ function Home() {
       }
 
       planeBody.scale.set(3, 3, 3);
-      planeBody.position.set(1400,-500, 0);
+      planeBody.position.set(1400, -500, 0);
 
       airplaneModel.current = planeBody; // Reference
       airplaneModel.current.add(cameraLookAtTarget);
@@ -282,7 +268,6 @@ function Home() {
         orbitControls.dampingFactor = 0.05; // Adjust damping factor as needed
         orbitControls.enabled = false; // Initially, disable the OrbitControls
       });
-
 
       scene.add(planeBody);
       onLoadComplete();
@@ -339,13 +324,15 @@ function Home() {
         airplaneModel.current.quaternion
       );
 
+      const effectiveSpeed = boost ? speed * 3 : speed;
+
       // Calculate the forward vector and move the airplane
       const forward = new THREE.Vector3(0, 0, 1).applyQuaternion(
         airplaneModel.current.quaternion
       );
       airplaneModel.current.position.addScaledVector(
         forward,
-        speed * speedStep
+        effectiveSpeed * speedStep
       );
 
       // Ensure the cameraOffset is correctly positioned relative to the airplane model
@@ -476,7 +463,6 @@ function Home() {
       azimuth: 0.25, // Facing front,
       exposure: renderer.toneMappingExposure,
     };
-    
 
     function updateSun() {
       const theta = Math.PI * (effectController.inclination - 0.5);
@@ -492,12 +478,11 @@ function Home() {
     updateSun();
     scene.add(sky);
 
-    const bluePointLight = new THREE.PointLight(0x0000ff, 1, 100); 
+    const bluePointLight = new THREE.PointLight(0x0000ff, 1, 100);
     bluePointLight.position.set(0, 0, 2);
     bluePointLight.castShadow = true;
     scene.add(bluePointLight);
     //scene.add(ambientLight);
-
 
     camera.position.z = 5;
 
@@ -508,7 +493,6 @@ function Home() {
     let rock1 = loader.load("src/assets/rock1.png");
     let rock2 = loader.load("src/assets/rock2.png");
     let rock3 = loader.load("src/assets/rock3.png");
-    
 
     // scene.fog = new THREE.Fog(0xffffff, 200000, 500000);
     let size = 30000; // size of your terrain
@@ -559,10 +543,9 @@ function Home() {
 
       texture.wrapS = THREE.RepeatWrapping;
       texture.wrapT = THREE.RepeatWrapping;
-      texture.repeat.set(30,30);
+      texture.repeat.set(30, 30);
 
-
-const planeColor = new THREE.Color(1,1,1);
+      const planeColor = new THREE.Color(1, 1, 1);
 
       const planeMaterial = new THREE.MeshStandardMaterial({
         color: planeColor,
@@ -583,32 +566,35 @@ const planeColor = new THREE.Color(1,1,1);
       return newPlane;
     };
 
-    function deformTerrain(point: THREE.Vector3, plane: THREE.Mesh){
+    function deformTerrain(point: THREE.Vector3, plane: THREE.Mesh) {
       const planeGeometry = plane.geometry;
       const vertices = planeGeometry.attributes.position.array;
       const radius = 35;
       const intensity = 170;
       // console.log(collision);
       for (let i = 0; i < vertices.length; i += 3) {
-          const vertex = new THREE.Vector3(vertices[i], vertices[i + 1], vertices[i + 2]);
-          // console.log("hi");
-          // console.log("vertex before: ", vertex.clone().toArray());
-          let world = vertex.applyMatrix4(plane.matrixWorld);
-          let worldPoint = new THREE.Vector3(...world.clone().toArray());
-          // console.log("vertex after: ", worldPoint);
-          const distance = point.distanceTo(worldPoint);
-          // console.log(distance);
+        const vertex = new THREE.Vector3(
+          vertices[i],
+          vertices[i + 1],
+          vertices[i + 2]
+        );
+        // console.log("hi");
+        // console.log("vertex before: ", vertex.clone().toArray());
+        let world = vertex.applyMatrix4(plane.matrixWorld);
+        let worldPoint = new THREE.Vector3(...world.clone().toArray());
+        // console.log("vertex after: ", worldPoint);
+        const distance = point.distanceTo(worldPoint);
+        // console.log(distance);
 
-          if (distance < radius){
-              const deformAmount = intensity * (1 - distance / radius);
-              vertices[i + 2] -= deformAmount; // adjust the z-coord
-              console.log("deform at: ", worldPoint);
-              // console.log("intersection at: ", point);
-          }
+        if (distance < radius) {
+          const deformAmount = intensity * (1 - distance / radius);
+          vertices[i + 2] -= deformAmount; // adjust the z-coord
+          console.log("deform at: ", worldPoint);
+          // console.log("intersection at: ", point);
+        }
       }
       planeGeometry.attributes.position.needsUpdate = true;
-  }
-
+    }
 
     const handleResize = () => {
       const width = window.innerWidth;
@@ -657,7 +643,7 @@ const planeColor = new THREE.Color(1,1,1);
     // let animation;
     const animate = () => {
       // stop mechanism once crashed
-      if (crash){
+      if (crash) {
         isMouseDown.current = true;
         // wasted screen logic here
         const wastedOverlay = document.createElement("div");
@@ -671,15 +657,14 @@ const planeColor = new THREE.Color(1,1,1);
         wastedOverlay.style.opacity = "0.2"; // Set opacity as needed
         document.body.appendChild(wastedOverlay);
 
-        if (stopClock.getElapsedTime() > 5){
+        if (stopClock.getElapsedTime() > 5) {
           stop = true;
         }
         speed = 0;
         camera.translateZ(30);
         camera.rotateX(10);
-        
       }
-      if (stop){
+      if (stop) {
         // put in reset logic here
 
         console.log("stop");
@@ -710,8 +695,6 @@ const planeColor = new THREE.Color(1,1,1);
       sky.material.uniforms["mieDirectionalG"].value =
         effectController.mieDirectionalG;
 
-
-
       const uniforms = sky.material.uniforms;
       uniforms["turbidity"].value = effectController.turbidity;
       uniforms["rayleigh"].value = effectController.rayleigh;
@@ -722,9 +705,6 @@ const planeColor = new THREE.Color(1,1,1);
       effectController.azimuth += 0.004 * clock.getDelta();
       if (effectController.azimuth > 1) effectController.azimuth = 0;
       updateSun();
-
-    
-
 
       // Track the position in grid units, not world units
       let gridPositionX = Math.floor(position.x / size);
@@ -811,19 +791,19 @@ const planeColor = new THREE.Color(1,1,1);
       // let collisionTerrain = child as THREE.Mesh;
       const raycaster = new THREE.Raycaster();
       const rayDir = new THREE.Vector3();
-      
+
       camera.getWorldDirection(rayDir);
       const result = new THREE.Vector3();
       // result.addVectors(rayDir, cameraOffset);
       raycaster.set(camera.position, rayDir);
       const intersects = raycaster.intersectObject(grid[1][1]);
       // if intersects:
-      if (intersects.length > 0 && intersects[0].distance < 50){ 
+      if (intersects.length > 0 && intersects[0].distance < 50) {
         // console.log("intersect with terrain, point: ", intersects);
         const point = intersects[0].point;
         deformTerrain(point, grid[1][1]);
         crash = true;
-    }
+      }
       // ==========================
 
       renderer.render(scene, camera);
@@ -848,6 +828,12 @@ const planeColor = new THREE.Color(1,1,1);
         case "d":
           targetBarel = -1; // Set target yaw to right
           break;
+        case "Shift":
+          if (!boost) {
+            setPrevSpeed(speed);
+          }
+          boost = true;
+          break;
       }
     }
 
@@ -861,8 +847,8 @@ const planeColor = new THREE.Color(1,1,1);
         case "d":
           targetBarel = 0; // Reset target yaw
           break;
-        // ... other cases ...
-        default:
+        case "Shift":
+          boost = false;
           break;
       }
     }
@@ -931,11 +917,11 @@ const planeColor = new THREE.Color(1,1,1);
 
   return (
     <div className="App" role="region">
-      {isLoading && <div className="loading-screen">Loading...</div>} {/* Loading screen */}
+      {isLoading && <div className="loading-screen">Loading...</div>}{" "}
+      {/* Loading screen */}
       <div className={"threeContainer"} ref={threeContainer} />
     </div>
   );
 }
-
 
 export default Home;
