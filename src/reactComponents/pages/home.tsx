@@ -493,9 +493,9 @@ function Home() {
     scene.add(sky);
 
     const bluePointLight = new THREE.PointLight(0x0000ff, 1, 100); 
-bluePointLight.position.set(0, 0, 2);
-bluePointLight.castShadow = true;
-scene.add(bluePointLight);
+    bluePointLight.position.set(0, 0, 2);
+    bluePointLight.castShadow = true;
+    scene.add(bluePointLight);
     //scene.add(ambientLight);
 
 
@@ -508,6 +508,7 @@ scene.add(bluePointLight);
     let rock1 = loader.load("src/assets/rock1.png");
     let rock2 = loader.load("src/assets/rock2.png");
     let rock3 = loader.load("src/assets/rock3.png");
+    
 
     // scene.fog = new THREE.Fog(0xffffff, 200000, 500000);
     let size = 30000; // size of your terrain
@@ -657,7 +658,18 @@ const planeColor = new THREE.Color(1,1,1);
     const animate = () => {
       // stop mechanism once crashed
       if (crash){
-        // insert wasted screen logic here
+        isMouseDown.current = true;
+        // wasted screen logic here
+        const wastedOverlay = document.createElement("div");
+        wastedOverlay.style.position = "fixed";
+        wastedOverlay.style.top = "0";
+        wastedOverlay.style.left = "0";
+        wastedOverlay.style.width = "100%";
+        wastedOverlay.style.height = "100%";
+        wastedOverlay.style.backgroundImage = "url('/static/wasted2.png')";
+        wastedOverlay.style.backgroundSize = "cover";
+        wastedOverlay.style.opacity = "0.2"; // Set opacity as needed
+        document.body.appendChild(wastedOverlay);
 
         if (stopClock.getElapsedTime() > 5){
           stop = true;
@@ -665,6 +677,7 @@ const planeColor = new THREE.Color(1,1,1);
         speed = 0;
         camera.translateZ(30);
         camera.rotateX(10);
+        
       }
       if (stop){
         // put in reset logic here
