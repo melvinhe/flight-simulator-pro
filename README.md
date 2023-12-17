@@ -1,4 +1,4 @@
-# Flight Simulator Pro with Ininite Terrain Generation & Crash Effects
+# Flight Simulator Pro with Infinite Terrain Generation & Crash Effects
 
 ## Description
 
