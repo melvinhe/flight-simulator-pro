@@ -10,7 +10,7 @@ Watch fun video demo for some positive vibes:
 
 This is a web based terrain generation flight simulator project using React and Three.js with "wasted" crash simulation.
 
-Check out a deployed version of the web app: https://flight-simulator-pro.vercel.app
+Try out a deployed version of the web app: https://flight-simulator-pro.vercel.app
 
 ## Controls:
 
